@@ -1,167 +1,349 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Détecteur Radar</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: Arial, sans-serif;
-            background-color: black;
-            color: white;
-            transition: background-color 0.3s ease;
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            overflow: hidden;
-        }
-
-        body.vert {
-            background-color: #00cc00;
-        }
-
-        body.orange {
-            background-color: #ff8800;
-        }
-
-        body.rouge {
-            background-color: #cc0000;
-        }
-
-        .container {
-            text-align: center;
-        }
-
-        .speed-display {
-            font-family: Arial, sans-serif;
-            font-size: 150px;
-            font-weight: bold;
-            color: white;
-            line-height: 1;
-        }
-
-        .unit {
-            font-size: 50px;
-            vertical-align: super;
-            margin-left: 10px;
-        }
-
-        .info {
-            margin-top: 30px;
-            font-size: 24px;
-        }
-
-        .radar-info {
-            margin-top: 20px;
-            font-size: 18px;
-            opacity: 0.8;
-        }
-    </style>
+<!DOCTYPE html><html lang="fr"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Testeur Radar France</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      background: #000; 
+      color: #fff; 
+      font-family: Arial, sans-serif; 
+      overflow: hidden;
+      height: 100vh;
+    }
+    #status-btn {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      padding: 10px 15px;
+      border: 2px solid #fff;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      z-index: 1000;
+    }
+    .status-green { background: #0a0; color: #fff; }
+    .status-orange { background: #f80; color: #000; }
+    .status-red { background: #f00; color: #fff; }
+    
+    #speed-display {
+      text-align: center;
+      font-size: 180px;
+      font-weight: bold;
+      margin-top: 120px;
+      text-shadow: 0 0 20px currentColor;
+    }
+    #speed-unit { font-size: 50px; vertical-align: super; margin-left: 5px; }
+    
+    #radar-panel {
+      position: fixed;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.9);
+      border: 3px solid #fff;
+      border-radius: 15px;
+      padding: 20px;
+      min-width: 300px;
+      text-align: center;
+      display: none;
+    }
+    #radar-limit {
+      font-size: 60px;
+      font-weight: bold;
+      color: #f00;
+    }
+    #radar-distance {
+      font-size: 24px;
+      margin-top: 10px;
+    }
+    
+    #gauge-container {
+      position: fixed;
+      bottom: 10px;
+      left: 10px;
+      right: 10px;
+      height: 40px;
+      background: #222;
+      border: 2px solid #fff;
+      border-radius: 5px;
+      overflow: hidden;
+    }
+    #gauge-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #0f0, #ff0, #f00);
+      width: 0%;
+      transition: width 0.3s;
+    }
+    
+    .bg-green { background: #0a0 !important; }
+    .bg-orange { background: #f80 !important; }
+    .bg-red { background: #f00 !important; }
+    
+    #api-key-modal {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #111;
+      border: 2px solid #fff;
+      padding: 30px;
+      border-radius: 10px;
+      z-index: 2000;
+    }
+    #api-key-modal input {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      background: #222;
+      border: 1px solid #fff;
+      color: #fff;
+      font-size: 16px;
+    }
+    #api-key-modal button {
+      width: 100%;
+      padding: 10px;
+      background: #0a0;
+      border: none;
+      color: #fff;
+      font-size: 18px;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+  </style>
 </head>
-<body>
-    <div class="container">
-        <div class="speed-display">
-            <span id="speed">0</span><span class="unit">km/h</span>
-        </div>
-        <div class="info" id="info">En attente GPS...</div>
-        <div class="radar-info" id="radar-info"></div>
-    </div>
+<body class="">
 
-    <script>
-        let currentSpeed = 0;
-        let nearbyRadars = [];
+  <div id="api-key-modal" style="display: none;">
+    <h3>ClÃ© API Lufop requise</h3>
+    <p style="font-size:14px; margin:10px 0;">Obtiens ta clÃ© gratuite sur <a href="https://api.lufop.net" target="_blank" style="color:#0ff">api.lufop.net</a></p>
+    <input type="text" id="api-key-input" placeholder="Colle ta clÃ© API ici">
+    <button onclick="saveApiKey()">Valider</button>
+  </div>
 
-        // Exemples de radars (à remplacer par vos vraies données)
-        const radars = [
-            { lat: 48.8566, lon: 2.3522, speedLimit: 50 },  // Exemple Paris
-            { lat: 45.7640, lon: 4.8357, speedLimit: 90 },  // Exemple Lyon
-        ];
+  <div id="status-btn" class="status-red" onclick="updateRadars()">Pas de base</div>
 
-        function updateBackground(speed, speedLimit, hasRadar) {
-            const body = document.body;
-            body.classList.remove('vert', 'orange', 'rouge');
+  <div id="speed-display">
+    <span id="speed-value">0</span>
+    <span id="speed-unit">km/h</span>
+  </div>
 
-            if (hasRadar) {
-                if (speed <= speedLimit + 1) {
-                    body.classList.add('vert');
-                } else if (speed <= speedLimit + 4) {
-                    body.classList.add('orange');
-                } else {
-                    body.classList.add('rouge');
-                }
-            }
-        }
+  <div id="radar-panel" style="display: none;">
+    <div id="radar-limit">50</div>
+    <div id="radar-distance">Distance: 250m</div>
+  </div>
 
-        function checkNearbyRadars(lat, lon, speed) {
-            const RADAR_DISTANCE = 500; // mètres
-            nearbyRadars = [];
+  <div id="gauge-container">
+    <div id="gauge-fill" style="width: 0%;"></div>
+  </div>
 
-            radars.forEach(radar => {
-                const distance = calculateDistance(lat, lon, radar.lat, radar.lon);
-                if (distance <= RADAR_DISTANCE) {
-                    nearbyRadars.push({ ...radar, distance });
-                }
-            });
+  <script>
+    let radars = [];
+    let currentPos = null;
+    let currentSpeed = 0;
+    let currentBearing = 0;
+    let activeRadar = null;
+    let lastBeepTime = 0;
+    let audioContext = null;
 
-            if (nearbyRadars.length > 0) {
-                const closestRadar = nearbyRadars.sort((a, b) => a.distance - b.distance)[0];
-                updateBackground(speed, closestRadar.speedLimit, true);
-                document.getElementById('radar-info').textContent = 
-                    `⚠️ Radar à ${Math.round(closestRadar.distance)}m - Limite: ${closestRadar.speedLimit} km/h`;
-                return true;
-            } else {
-                updateBackground(0, 0, false);
-                document.getElementById('radar-info').textContent = '';
-                return false;
-            }
-        }
+    // Init Audio
+    function initAudio() {
+      if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
 
-        function calculateDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371e3; // Rayon de la Terre en mètres
-            const φ1 = lat1 * Math.PI / 180;
-            const φ2 = lat2 * Math.PI / 180;
-            const Δφ = (lat2 - lat1) * Math.PI / 180;
-            const Δλ = (lon2 - lon1) * Math.PI / 180;
+    function beep(freq = 1000, duration = 200) {
+      initAudio();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      oscillator.frequency.value = freq;
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      oscillator.start();
+      setTimeout(() => oscillator.stop(), duration);
+    }
 
-            const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-                      Math.cos(φ1) * Math.cos(φ2) *
-                      Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    // Calculs GPS
+    function haversine(lat1, lon1, lat2, lon2) {
+      const R = 6371e3;
+      const Ï1 = lat1 * Math.PI / 180;
+      const Ï2 = lat2 * Math.PI / 180;
+      const ÎÏ = (lat2 - lat1) * Math.PI / 180;
+      const ÎÎ» = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(ÎÏ/2) * Math.sin(ÎÏ/2) +
+                Math.cos(Ï1) * Math.cos(Ï2) *
+                Math.sin(ÎÎ»/2) * Math.sin(ÎÎ»/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return R * c;
+    }
 
-            return R * c;
-        }
+    function bearing(lat1, lon1, lat2, lon2) {
+      const Ï1 = lat1 * Math.PI / 180;
+      const Ï2 = lat2 * Math.PI / 180;
+      const ÎÎ» = (lon2 - lon1) * Math.PI / 180;
+      const y = Math.sin(ÎÎ») * Math.cos(Ï2);
+      const x = Math.cos(Ï1) * Math.sin(Ï2) -
+                Math.sin(Ï1) * Math.cos(Ï2) * Math.cos(ÎÎ»);
+      const Î¸ = Math.atan2(y, x);
+      return (Î¸ * 180 / Math.PI + 360) % 360;
+    }
 
-        function updateSpeed(position) {
-            const speed = position.coords.speed;
-            currentSpeed = speed !== null ? Math.round(speed * 3.6) : 0; // m/s vers km/h
+    // Filtre radar pertinent
+    function isRelevantRadar(radar) {
+      if (!currentPos) return false;
+      const dist = haversine(currentPos.latitude, currentPos.longitude, 
+                             radar.lat, radar.lon);
+      if (dist > 1000) return false; // > 1km ignore
 
-            document.getElementById('speed').textContent = currentSpeed;
-            document.getElementById('info').textContent = 
-                `Position: ${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)}`;
+      const bear = bearing(currentPos.latitude, currentPos.longitude,
+                           radar.lat, radar.lon);
+      const azimut = parseFloat(radar.azimut || 0);
+      const diffAzimut = Math.min(Math.abs(bear - azimut), 
+                                   360 - Math.abs(bear - azimut));
 
-            checkNearbyRadars(position.coords.latitude, position.coords.longitude, currentSpeed);
-        }
+      // Filtre direction
+      if (diffAzimut > 45) return false; // Pas dans l'axe
+      if (radar.flash !== 'F' && radar.flash !== 'D') return false; // Dos uniquement
+      
+      // Filtre position voie (France = conduite droite)
+      if (radar.position === 'L') return false; // Gauche = ignore
 
-        function handleError(error) {
-            document.getElementById('info').textContent = 'Erreur GPS: ' + error.message;
-        }
+      return true;
+    }
 
-        if ("geolocation" in navigator) {
-            navigator.geolocation.watchPosition(updateSpeed, handleError, {
-                enableHighAccuracy: true,
-                maximumAge: 0,
-                timeout: 5000
-            });
+    // Update radars Lufop
+    async function updateRadars() {
+      const apiKey = localStorage.getItem('lufop_api_key');
+      if (!apiKey) {
+        document.getElementById('api-key-modal').style.display = 'block';
+        return;
+      }
+
+      try {
+        const response = await fetch(`https://api.lufop.net/api?key=${apiKey}&format=json&nbr=10000&pays=fr`);
+        const data = await response.json();
+        radars = data.map(r => ({
+          lat: parseFloat(r.latitude),
+          lon: parseFloat(r.longitude),
+          speed: parseInt(r.vitesse || 50),
+          flash: r.flash || 'D',
+          position: r.position || 'C',
+          azimut: parseFloat(r.azimut || 0)
+        }));
+        
+        localStorage.setItem('radars_cache', JSON.stringify(radars));
+        localStorage.setItem('radars_date', new Date().toISOString());
+        updateStatusButton();
+        alert(`â ${radars.length} radars chargÃ©s`);
+      } catch (e) {
+        alert('Erreur API: ' + e.message);
+      }
+    }
+
+    function updateStatusButton() {
+      const lastUpdate = localStorage.getItem('radars_date');
+      const btn = document.getElementById('status-btn');
+      
+      if (!lastUpdate) {
+        btn.className = 'status-red';
+        btn.textContent = 'Pas de base';
+        return;
+      }
+
+      const daysDiff = (Date.now() - new Date(lastUpdate)) / (1000 * 60 * 60 * 24);
+      if (daysDiff < 1) {
+        btn.className = 'status-green';
+        btn.textContent = 'Ã jour';
+      } else if (daysDiff < 30) {
+        btn.className = 'status-orange';
+        btn.textContent = `MAJ: ${Math.floor(daysDiff)}j`;
+      } else {
+        btn.className = 'status-red';
+        btn.textContent = `MAJ: ${Math.floor(daysDiff)}j`;
+      }
+    }
+
+    function saveApiKey() {
+      const key = document.getElementById('api-key-input').value.trim();
+      if (key) {
+        localStorage.setItem('lufop_api_key', key);
+        document.getElementById('api-key-modal').style.display = 'none';
+        updateRadars();
+      }
+    }
+
+    // GPS Watch
+    navigator.geolocation.watchPosition(pos => {
+      currentPos = pos.coords;
+      currentSpeed = (pos.coords.speed || 0) * 3.6; // m/s â km/h
+      currentBearing = pos.coords.heading || 0;
+      
+      document.getElementById('speed-value').textContent = Math.round(currentSpeed);
+      
+      // Check radars proches
+      const relevant = radars.filter(isRelevantRadar)
+        .map(r => ({
+          ...r,
+          distance: haversine(currentPos.latitude, currentPos.longitude, r.lat, r.lon)
+        }))
+        .sort((a, b) => a.distance - b.distance);
+
+      if (relevant.length > 0 && relevant[0].distance < 500) {
+        const radar = relevant[0];
+        activeRadar = radar;
+        
+        // Affiche panneau
+        document.getElementById('radar-panel').style.display = 'block';
+        document.getElementById('radar-limit').textContent = radar.speed;
+        document.getElementById('radar-distance').textContent = `${Math.round(radar.distance)}m`;
+        
+        // Couleur fond
+        if (currentSpeed <= radar.speed + 1) {
+          document.body.className = 'bg-green';
+        } else if (currentSpeed <= radar.speed + 4) {
+          document.body.className = 'bg-orange';
         } else {
-            document.getElementById('info').textContent = 'Géolocalisation non disponible';
+          document.body.className = 'bg-red';
         }
-    </script>
-</body>
-</html>
+        
+        // Bips
+        const now = Date.now();
+        if (radar.distance < 500 && lastBeepTime === 0) {
+          beep(1500, 300); // EntrÃ©e zone
+          lastBeepTime = now;
+        }
+        if (diff > 4 && now - lastBeepTime > 2000) {
+          beep(2000, 200); // Bip rouge
+          lastBeepTime = now;
+        }
+        
+        // Jauge (500m avant â 50m aprÃ¨s)
+        const gaugeProgress = Math.max(0, Math.min(100, ((500 - radar.distance) / 550) * 100));
+        document.getElementById('gauge-fill').style.width = gaugeProgress + '%';
+        
+      } else {
+        activeRadar = null;
+        document.getElementById('radar-panel').style.display = 'none';
+        document.body.className = '';
+        document.getElementById('gauge-fill').style.width = '0%';
+        lastBeepTime = 0;
+      }
+    }, null, { enableHighAccuracy: true, maximumAge: 1000 });
+
+    // Init
+    window.onload = () => {
+      const cached = localStorage.getItem('radars_cache');
+      if (cached) radars = JSON.parse(cached);
+      updateStatusButton();
+      
+      if (!localStorage.getItem('lufop_api_key')) {
+        document.getElementById('api-key-modal').style.display = 'block';
+      } else {
+        document.getElementById('api-key-modal').style.display = 'none';
+      }
+    };
+  </script>
+
+
+
+</body></html>
