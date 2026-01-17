@@ -25,7 +25,7 @@
     .status-green { background: #0a0; color: #fff; }
     .status-orange { background: #f80; color: #000; }
     .status-red { background: #f00; color: #fff; }
-    
+
     #speed-display {
       text-align: center;
       font-size: 180px;
@@ -34,7 +34,7 @@
       text-shadow: 0 0 20px currentColor;
     }
     #speed-unit { font-size: 50px; vertical-align: super; margin-left: 5px; }
-    
+
     #radar-panel {
       position: fixed;
       bottom: 80px;
@@ -57,7 +57,7 @@
       font-size: 24px;
       margin-top: 10px;
     }
-    
+
     #gauge-container {
       position: fixed;
       bottom: 10px;
@@ -75,11 +75,11 @@
       width: 0%;
       transition: width 0.3s;
     }
-    
+
     .bg-green { background: #0a0 !important; }
     .bg-orange { background: #f80 !important; }
     .bg-red { background: #f00 !important; }
-    
+
     #api-key-modal {
       position: fixed;
       top: 50%;
@@ -115,17 +115,16 @@
 <body class="">
 
   <div id="api-key-modal" style="display: none;">
-    <h3>ClÃ© API Lufop requise</h3>
-    <p style="font-size:14px; margin:10px 0;">Obtiens ta clÃ© gratuite sur <a href="https://api.lufop.net" target="_blank" style="color:#0ff">api.lufop.net</a></p>
-    <input type="text" id="api-key-input" placeholder="Colle ta clÃ© API ici">
+    <h3>Clé API Lufop requise</h3>
+    <p style="font-size:14px; margin:10px 0;">Obtiens ta clé gratuite sur <a href="https://api.lufop.net" target="_blank" style="color:#0ff">api.lufop.net</a></p>
+    <input type="text" id="api-key-input" placeholder="Colle ta clé API ici">
     <button onclick="saveApiKey()">Valider</button>
   </div>
 
-  <div id="status-btn" class="status-red" onclick="updateRadars()">Pas de base</div>
+  <div id="status-btn" class="status-red" onclick="updateRadars()" ondblclick="openApiKeyModal()" title="Double-clic pour modifier la clé API">Pas de base</div>
 
   <div id="speed-display">
-    <span id="speed-value">0</span>
-    <span id="speed-unit">km/h</span>
+    <span id="speed-value">0</span><span id="speed-unit">km/h</span>
   </div>
 
   <div id="radar-panel" style="display: none;">
@@ -166,26 +165,26 @@
     // Calculs GPS
     function haversine(lat1, lon1, lat2, lon2) {
       const R = 6371e3;
-      const Ï1 = lat1 * Math.PI / 180;
-      const Ï2 = lat2 * Math.PI / 180;
-      const ÎÏ = (lat2 - lat1) * Math.PI / 180;
-      const ÎÎ» = (lon2 - lon1) * Math.PI / 180;
-      const a = Math.sin(ÎÏ/2) * Math.sin(ÎÏ/2) +
-                Math.cos(Ï1) * Math.cos(Ï2) *
-                Math.sin(ÎÎ»/2) * Math.sin(ÎÎ»/2);
+      const φ1 = lat1 * Math.PI / 180;
+      const φ2 = lat2 * Math.PI / 180;
+      const Δφ = (lat2 - lat1) * Math.PI / 180;
+      const Δλ = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+                Math.cos(φ1) * Math.cos(φ2) *
+                Math.sin(Δλ/2) * Math.sin(Δλ/2);
       const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
       return R * c;
     }
 
     function bearing(lat1, lon1, lat2, lon2) {
-      const Ï1 = lat1 * Math.PI / 180;
-      const Ï2 = lat2 * Math.PI / 180;
-      const ÎÎ» = (lon2 - lon1) * Math.PI / 180;
-      const y = Math.sin(ÎÎ») * Math.cos(Ï2);
-      const x = Math.cos(Ï1) * Math.sin(Ï2) -
-                Math.sin(Ï1) * Math.cos(Ï2) * Math.cos(ÎÎ»);
-      const Î¸ = Math.atan2(y, x);
-      return (Î¸ * 180 / Math.PI + 360) % 360;
+      const φ1 = lat1 * Math.PI / 180;
+      const φ2 = lat2 * Math.PI / 180;
+      const Δλ = (lon2 - lon1) * Math.PI / 180;
+      const y = Math.sin(Δλ) * Math.cos(φ2);
+      const x = Math.cos(φ1) * Math.sin(φ2) -
+                Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
+      const θ = Math.atan2(y, x);
+      return (θ * 180 / Math.PI + 360) % 360;
     }
 
     // Filtre radar pertinent
@@ -193,7 +192,7 @@
       if (!currentPos) return false;
       const dist = haversine(currentPos.latitude, currentPos.longitude, 
                              radar.lat, radar.lon);
-      if (dist > 1000) return false; // > 1km ignore
+      if (dist > 1000) return false;
 
       const bear = bearing(currentPos.latitude, currentPos.longitude,
                            radar.lat, radar.lon);
@@ -201,12 +200,9 @@
       const diffAzimut = Math.min(Math.abs(bear - azimut), 
                                    360 - Math.abs(bear - azimut));
 
-      // Filtre direction
-      if (diffAzimut > 45) return false; // Pas dans l'axe
-      if (radar.flash !== 'F' && radar.flash !== 'D') return false; // Dos uniquement
-      
-      // Filtre position voie (France = conduite droite)
-      if (radar.position === 'L') return false; // Gauche = ignore
+      if (diffAzimut > 45) return false;
+      if (radar.flash !== 'F' && radar.flash !== 'D') return false;
+      if (radar.position === 'L') return false;
 
       return true;
     }
@@ -230,11 +226,11 @@
           position: r.position || 'C',
           azimut: parseFloat(r.azimut || 0)
         }));
-        
+
         localStorage.setItem('radars_cache', JSON.stringify(radars));
         localStorage.setItem('radars_date', new Date().toISOString());
         updateStatusButton();
-        alert(`â ${radars.length} radars chargÃ©s`);
+        alert(`✓ ${radars.length} radars chargés`);
       } catch (e) {
         alert('Erreur API: ' + e.message);
       }
@@ -243,7 +239,7 @@
     function updateStatusButton() {
       const lastUpdate = localStorage.getItem('radars_date');
       const btn = document.getElementById('status-btn');
-      
+
       if (!lastUpdate) {
         btn.className = 'status-red';
         btn.textContent = 'Pas de base';
@@ -253,7 +249,7 @@
       const daysDiff = (Date.now() - new Date(lastUpdate)) / (1000 * 60 * 60 * 24);
       if (daysDiff < 1) {
         btn.className = 'status-green';
-        btn.textContent = 'Ã jour';
+        btn.textContent = 'À jour';
       } else if (daysDiff < 30) {
         btn.className = 'status-orange';
         btn.textContent = `MAJ: ${Math.floor(daysDiff)}j`;
@@ -272,15 +268,18 @@
       }
     }
 
+    function openApiKeyModal() {
+      document.getElementById('api-key-modal').style.display = 'block';
+    }
+
     // GPS Watch
     navigator.geolocation.watchPosition(pos => {
       currentPos = pos.coords;
-      currentSpeed = (pos.coords.speed || 0) * 3.6; // m/s â km/h
+      currentSpeed = (pos.coords.speed || 0) * 3.6;
       currentBearing = pos.coords.heading || 0;
-      
+
       document.getElementById('speed-value').textContent = Math.round(currentSpeed);
-      
-      // Check radars proches
+
       const relevant = radars.filter(isRelevantRadar)
         .map(r => ({
           ...r,
@@ -291,13 +290,11 @@
       if (relevant.length > 0 && relevant[0].distance < 500) {
         const radar = relevant[0];
         activeRadar = radar;
-        
-        // Affiche panneau
+
         document.getElementById('radar-panel').style.display = 'block';
         document.getElementById('radar-limit').textContent = radar.speed;
         document.getElementById('radar-distance').textContent = `${Math.round(radar.distance)}m`;
-        
-        // Couleur fond
+
         if (currentSpeed <= radar.speed + 1) {
           document.body.className = 'bg-green';
         } else if (currentSpeed <= radar.speed + 4) {
@@ -305,22 +302,20 @@
         } else {
           document.body.className = 'bg-red';
         }
-        
-        // Bips
+
         const now = Date.now();
         if (radar.distance < 500 && lastBeepTime === 0) {
-          beep(1500, 300); // EntrÃ©e zone
+          beep(1500, 300);
           lastBeepTime = now;
         }
-        if (diff > 4 && now - lastBeepTime > 2000) {
-          beep(2000, 200); // Bip rouge
+        if (currentSpeed > radar.speed + 4 && now - lastBeepTime > 2000) {
+          beep(2000, 200);
           lastBeepTime = now;
         }
-        
-        // Jauge (500m avant â 50m aprÃ¨s)
+
         const gaugeProgress = Math.max(0, Math.min(100, ((500 - radar.distance) / 550) * 100));
         document.getElementById('gauge-fill').style.width = gaugeProgress + '%';
-        
+
       } else {
         activeRadar = null;
         document.getElementById('radar-panel').style.display = 'none';
@@ -335,7 +330,7 @@
       const cached = localStorage.getItem('radars_cache');
       if (cached) radars = JSON.parse(cached);
       updateStatusButton();
-      
+
       if (!localStorage.getItem('lufop_api_key')) {
         document.getElementById('api-key-modal').style.display = 'block';
       } else {
