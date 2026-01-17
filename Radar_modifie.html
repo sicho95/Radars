@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Détecteur Radar</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: black;
+            color: white;
+            transition: background-color 0.3s ease;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        body.vert {
+            background-color: #00cc00;
+        }
+
+        body.orange {
+            background-color: #ff8800;
+        }
+
+        body.rouge {
+            background-color: #cc0000;
+        }
+
+        .container {
+            text-align: center;
+        }
+
+        .speed-display {
+            font-family: Arial, sans-serif;
+            font-size: 150px;
+            font-weight: bold;
+            color: white;
+            line-height: 1;
+        }
+
+        .unit {
+            font-size: 50px;
+            vertical-align: super;
+            margin-left: 10px;
+        }
+
+        .info {
+            margin-top: 30px;
+            font-size: 24px;
+        }
+
+        .radar-info {
+            margin-top: 20px;
+            font-size: 18px;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="speed-display">
+            <span id="speed">0</span><span class="unit">km/h</span>
+        </div>
+        <div class="info" id="info">En attente GPS...</div>
+        <div class="radar-info" id="radar-info"></div>
+    </div>
+
+    <script>
+        let currentSpeed = 0;
+        let nearbyRadars = [];
+
+        // Exemples de radars (à remplacer par vos vraies données)
+        const radars = [
+            { lat: 48.8566, lon: 2.3522, speedLimit: 50 },  // Exemple Paris
+            { lat: 45.7640, lon: 4.8357, speedLimit: 90 },  // Exemple Lyon
+        ];
+
+        function updateBackground(speed, speedLimit, hasRadar) {
+            const body = document.body;
+            body.classList.remove('vert', 'orange', 'rouge');
+
+            if (hasRadar) {
+                if (speed <= speedLimit + 1) {
+                    body.classList.add('vert');
+                } else if (speed <= speedLimit + 4) {
+                    body.classList.add('orange');
+                } else {
+                    body.classList.add('rouge');
+                }
+            }
+        }
+
+        function checkNearbyRadars(lat, lon, speed) {
+            const RADAR_DISTANCE = 500; // mètres
+            nearbyRadars = [];
+
+            radars.forEach(radar => {
+                const distance = calculateDistance(lat, lon, radar.lat, radar.lon);
+                if (distance <= RADAR_DISTANCE) {
+                    nearbyRadars.push({ ...radar, distance });
+                }
+            });
+
+            if (nearbyRadars.length > 0) {
+                const closestRadar = nearbyRadars.sort((a, b) => a.distance - b.distance)[0];
+                updateBackground(speed, closestRadar.speedLimit, true);
+                document.getElementById('radar-info').textContent = 
+                    `⚠️ Radar à ${Math.round(closestRadar.distance)}m - Limite: ${closestRadar.speedLimit} km/h`;
+                return true;
+            } else {
+                updateBackground(0, 0, false);
+                document.getElementById('radar-info').textContent = '';
+                return false;
+            }
+        }
+
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371e3; // Rayon de la Terre en mètres
+            const φ1 = lat1 * Math.PI / 180;
+            const φ2 = lat2 * Math.PI / 180;
+            const Δφ = (lat2 - lat1) * Math.PI / 180;
+            const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+            const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+                      Math.cos(φ1) * Math.cos(φ2) *
+                      Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+            return R * c;
+        }
+
+        function updateSpeed(position) {
+            const speed = position.coords.speed;
+            currentSpeed = speed !== null ? Math.round(speed * 3.6) : 0; // m/s vers km/h
+
+            document.getElementById('speed').textContent = currentSpeed;
+            document.getElementById('info').textContent = 
+                `Position: ${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)}`;
+
+            checkNearbyRadars(position.coords.latitude, position.coords.longitude, currentSpeed);
+        }
+
+        function handleError(error) {
+            document.getElementById('info').textContent = 'Erreur GPS: ' + error.message;
+        }
+
+        if ("geolocation" in navigator) {
+            navigator.geolocation.watchPosition(updateSpeed, handleError, {
+                enableHighAccuracy: true,
+                maximumAge: 0,
+                timeout: 5000
+            });
+        } else {
+            document.getElementById('info').textContent = 'Géolocalisation non disponible';
+        }
+    </script>
+</body>
+</html>
