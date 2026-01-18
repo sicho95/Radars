@@ -80,24 +80,41 @@
     .bg-orange { background: #f80 !important; }
     .bg-red { background: #f00 !important; }
 
+    #modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.8);
+      z-index: 1999;
+      display: none;
+    }
+
     #api-key-modal {
       position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
+      top: 5%;
+      left: 5%;
+      right: 5%;
+      bottom: 5%;
       background: #111;
-      border: 3px solid #fff;
-      padding: 20px;
+      border: 3px solid #0ff;
+      padding: 15px;
       border-radius: 10px;
       z-index: 2000;
-      width: 90%;
-      max-width: 500px;
-      max-height: 90vh;
+      display: none;
       overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
     }
     #api-key-modal h3 {
       margin-bottom: 10px;
       color: #0ff;
+      font-size: 20px;
+    }
+    #api-key-modal p {
+      font-size: 13px;
+      margin: 8px 0;
+      line-height: 1.4;
     }
     #api-key-modal input {
       width: 100%;
@@ -111,51 +128,74 @@
     }
     #api-key-modal button {
       width: 100%;
-      padding: 12px;
-      background: #0a0;
+      padding: 14px;
       border: none;
       color: #fff;
-      font-size: 18px;
+      font-size: 16px;
       cursor: pointer;
       border-radius: 5px;
-      margin-top: 10px;
+      margin: 5px 0;
       font-weight: bold;
     }
-    #close-modal {
+    #btn-validate {
+      background: #0a0;
+    }
+    #btn-close {
       background: #666;
-      margin-top: 5px;
+    }
+
+    #debug-section {
+      margin-top: 20px;
+      border-top: 2px solid #0ff;
+      padding-top: 15px;
+    }
+    #debug-section h4 {
+      color: #0ff;
+      margin-bottom: 10px;
+      font-size: 16px;
     }
     #debug-log {
       background: #000;
       border: 2px solid #0f0;
       border-radius: 5px;
       padding: 10px;
-      margin-top: 15px;
+      min-height: 200px;
       max-height: 300px;
       overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
       font-family: monospace;
-      font-size: 11px;
+      font-size: 12px;
       text-align: left;
-      color: #0f0;
+      line-height: 1.5;
+    }
+    .log-entry {
+      margin: 3px 0;
+      padding: 3px 0;
+      border-bottom: 1px solid #222;
     }
     .log-info { color: #0ff; }
     .log-success { color: #0f0; }
     .log-warning { color: #ff0; }
     .log-error { color: #f00; }
-    .log-time { color: #888; font-size: 10px; }
+    .log-time { color: #888; font-size: 10px; margin-right: 5px; }
   </style>
 </head>
 <body class="">
 
-  <div id="api-key-modal" style="display: none;">
-    <h3>🔑 Clé API Lufop</h3>
-    <p style="font-size:14px; margin:10px 0;">Obtiens ta clé gratuite sur <a href="https://api.lufop.net" target="_blank" style="color:#0ff">api.lufop.net</a></p>
-    <input type="text" id="api-key-input" placeholder="Colle ta clé API ici">
-    <button onclick="saveApiKey()">✓ Valider et Charger</button>
-    <button id="close-modal" onclick="closeModal()">✕ Fermer</button>
-    <div id="debug-log">
-      <div class="log-info">📋 Journal de débogage</div>
-      <div class="log-info">En attente...</div>
+  <div id="modal-overlay"></div>
+
+  <div id="api-key-modal">
+    <h3>🔑 Configuration API Lufop</h3>
+    <p>Obtiens ta clé gratuite sur <a href="https://api.lufop.net" target="_blank" style="color:#0ff">api.lufop.net</a></p>
+    <input type="text" id="api-key-input" placeholder="Colle ta clé API ici (32 caractères)">
+    <button id="btn-validate" onclick="saveApiKey()">✓ VALIDER ET CHARGER</button>
+    <button id="btn-close" onclick="closeModal()">✕ FERMER</button>
+
+    <div id="debug-section">
+      <h4>📋 Journal de débogage</h4>
+      <div id="debug-log">
+        <div class="log-entry log-info"><span class="log-time">--:--:--</span> 📱 Modale ouverte - En attente de validation...</div>
+      </div>
     </div>
   </div>
 
@@ -186,15 +226,39 @@
     function addLog(msg, type = 'info') {
       console.log(`[${type}]`, msg);
       const log = document.getElementById('debug-log');
+      if (!log) return;
+
       const time = new Date().toLocaleTimeString('fr-FR');
       const logClass = `log-${type}`;
-      const icon = type === 'error' ? '❌' : type === 'success' ? '✓' : type === 'warning' ? '⚠️' : 'ℹ️';
-      log.innerHTML = `<div class="${logClass}">${icon} <span class="log-time">${time}</span> ${msg}</div>` + log.innerHTML;
-      log.scrollTop = 0;
+      const icon = type === 'error' ? '❌' : type === 'success' ? '✅' : type === 'warning' ? '⚠️' : 'ℹ️';
+
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${logClass}`;
+      entry.innerHTML = `<span class="log-time">${time}</span>${icon} ${msg}`;
+
+      log.insertBefore(entry, log.firstChild);
+
+      // Limiter à 50 entrées
+      while (log.children.length > 50) {
+        log.removeChild(log.lastChild);
+      }
     }
 
     function closeModal() {
       document.getElementById('api-key-modal').style.display = 'none';
+      document.getElementById('modal-overlay').style.display = 'none';
+    }
+
+    function openApiKeyModal() {
+      document.getElementById('modal-overlay').style.display = 'block';
+      document.getElementById('api-key-modal').style.display = 'block';
+      const currentKey = localStorage.getItem('lufop_api_key');
+      if (currentKey) {
+        document.getElementById('api-key-input').value = currentKey;
+        addLog('Clé actuelle chargée: ' + currentKey.substring(0, 8) + '...', 'info');
+      } else {
+        addLog('Aucune clé enregistrée', 'warning');
+      }
     }
 
     // Init Audio
@@ -263,62 +327,73 @@
       return true;
     }
 
-    // Update radars Lufop - VERSION MOBILE DEBUG
+    // Update radars Lufop
     async function updateRadars() {
       const apiKey = localStorage.getItem('lufop_api_key');
       if (!apiKey) {
-        addLog('Aucune clé API trouvée', 'warning');
-        document.getElementById('api-key-modal').style.display = 'block';
+        addLog('⚠️ Aucune clé API configurée', 'warning');
+        openApiKeyModal();
         return;
       }
 
+      addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
+      addLog('🚀 DEBUT APPEL API', 'info');
+
       const url = `https://api.lufop.net/api?key=${apiKey}&format=json&nbr=10000&pays=fr`;
-      addLog('🔄 Démarrage appel API...', 'info');
-      addLog('URL: ' + url.substring(0, 50) + '...', 'info');
+      addLog('URL: api.lufop.net/api?key=...', 'info');
+      addLog('Clé: ' + apiKey.substring(0, 8) + '...' + apiKey.substring(apiKey.length - 4), 'info');
 
       try {
-        addLog('📡 Envoi requête fetch...', 'info');
+        addLog('📡 Envoi requête HTTP...', 'info');
+
         const response = await fetch(url, {
           method: 'GET',
           mode: 'cors',
           cache: 'no-cache'
         });
 
-        addLog('📨 Réponse reçue - Status: ' + response.status, 'info');
-        addLog('Status Text: ' + response.statusText, 'info');
+        addLog('✅ Réponse reçue!', 'success');
+        addLog('Status HTTP: ' + response.status + ' ' + response.statusText, response.ok ? 'success' : 'error');
 
         if (!response.ok) {
-          addLog('❌ HTTP Error: ' + response.status, 'error');
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          throw new Error(`Erreur HTTP ${response.status}`);
         }
 
         const contentType = response.headers.get('content-type');
         addLog('Content-Type: ' + (contentType || 'non défini'), 'info');
 
-        addLog('📄 Lecture du texte...', 'info');
+        addLog('📥 Lecture contenu...', 'info');
         const text = await response.text();
-        addLog('Taille réponse: ' + text.length + ' chars', 'info');
-        addLog('Début: ' + text.substring(0, 100) + '...', 'info');
+        addLog('Taille: ' + text.length + ' caractères', 'info');
+        addLog('Début réponse: ' + text.substring(0, 80), 'info');
 
         addLog('🔍 Parse JSON...', 'info');
         let data;
         try {
           data = JSON.parse(text);
-          addLog('✓ JSON parsé avec succès', 'success');
+          addLog('✅ JSON valide!', 'success');
         } catch (parseError) {
-          addLog('❌ Erreur JSON: ' + parseError.message, 'error');
-          addLog('Réponse brute: ' + text.substring(0, 200), 'error');
-          throw new Error('Réponse invalide: ' + parseError.message);
+          addLog('❌ JSON INVALIDE: ' + parseError.message, 'error');
+          addLog('Réponse: ' + text, 'error');
+          throw new Error('JSON invalide');
         }
+
+        addLog('Type de données: ' + (Array.isArray(data) ? 'Array' : typeof data), 'info');
 
         if (!Array.isArray(data)) {
-          addLog('❌ Type: ' + typeof data + ', attendu: Array', 'error');
+          addLog('❌ Pas un tableau!', 'error');
           addLog('Contenu: ' + JSON.stringify(data).substring(0, 100), 'error');
-          throw new Error('Format invalide (pas un tableau)');
+          throw new Error('Format invalide');
         }
 
-        addLog('📊 Nombre radars reçus: ' + data.length, 'success');
+        addLog('📊 Nombre radars: ' + data.length, 'success');
 
+        if (data.length === 0) {
+          addLog('⚠️ Tableau vide!', 'warning');
+          throw new Error('Aucun radar reçu');
+        }
+
+        addLog('🔨 Traitement données...', 'info');
         radars = data.map(r => ({
           lat: parseFloat(r.latitude),
           lon: parseFloat(r.longitude),
@@ -328,19 +403,33 @@
           azimut: parseFloat(r.azimut || 0)
         }));
 
+        addLog('💾 Sauvegarde cache...', 'info');
         localStorage.setItem('radars_cache', JSON.stringify(radars));
         localStorage.setItem('radars_date', new Date().toISOString());
+
         updateStatusButton();
 
-        addLog('✓✓✓ SUCCÈS: ' + radars.length + ' radars chargés', 'success');
-        alert(`✓ ${radars.length} radars chargés avec succès!`);
-        closeModal();
+        addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'success');
+        addLog('🎉 SUCCÈS COMPLET!', 'success');
+        addLog('✅ ' + radars.length + ' radars chargés', 'success');
+        addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'success');
+
+        setTimeout(() => {
+          alert('✅ Succès!\n\n' + radars.length + ' radars chargés');
+          closeModal();
+        }, 1000);
 
       } catch (e) {
-        addLog('❌❌ ERREUR FINALE: ' + e.message, 'error');
+        addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'error');
+        addLog('💥 ERREUR FATALE', 'error');
+        addLog('Message: ' + e.message, 'error');
         addLog('Type: ' + e.name, 'error');
-        addLog('Stack: ' + (e.stack ? e.stack.substring(0, 200) : 'N/A'), 'error');
-        alert('❌ Erreur: ' + e.message + '\n\nRegarde le journal dans la modale pour détails');
+        if (e.stack) {
+          addLog('Stack: ' + e.stack.substring(0, 100), 'error');
+        }
+        addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'error');
+
+        alert('❌ Erreur API\n\n' + e.message + '\n\nRegarde le journal de débogage pour plus de détails');
       }
     }
 
@@ -369,24 +458,22 @@
 
     function saveApiKey() {
       const key = document.getElementById('api-key-input').value.trim();
-      if (key) {
-        addLog('💾 Sauvegarde clé API...', 'info');
-        addLog('Clé: ' + key.substring(0, 8) + '...', 'info');
-        localStorage.setItem('lufop_api_key', key);
-        document.getElementById('debug-log').innerHTML = '<div class="log-info">📋 Journal de débogage</div>';
-        updateRadars();
-      } else {
+      if (!key) {
         addLog('❌ Clé vide!', 'error');
+        alert('❌ Entre une clé API valide');
+        return;
       }
-    }
 
-    function openApiKeyModal() {
-      document.getElementById('api-key-modal').style.display = 'block';
-      const currentKey = localStorage.getItem('lufop_api_key');
-      if (currentKey) {
-        document.getElementById('api-key-input').value = currentKey;
-        addLog('Clé actuelle: ' + currentKey.substring(0, 8) + '...', 'info');
+      if (key.length !== 32) {
+        addLog('⚠️ Clé invalide (longueur: ' + key.length + ', attendu: 32)', 'warning');
       }
+
+      addLog('💾 Enregistrement clé API...', 'info');
+      addLog('Clé: ' + key.substring(0, 8) + '...', 'info');
+      localStorage.setItem('lufop_api_key', key);
+      addLog('✅ Clé enregistrée!', 'success');
+
+      updateRadars();
     }
 
     // GPS Watch
@@ -449,20 +536,21 @@
       if (cached) {
         try {
           radars = JSON.parse(cached);
-          addLog('📦 Cache chargé: ' + radars.length + ' radars', 'success');
+          addLog('📦 ' + radars.length + ' radars en cache', 'success');
         } catch(e) {
-          addLog('❌ Erreur lecture cache: ' + e.message, 'error');
+          addLog('❌ Cache corrompu: ' + e.message, 'error');
         }
       } else {
-        addLog('⚠️ Aucun cache trouvé', 'warning');
+        addLog('⚠️ Aucun cache', 'warning');
       }
       updateStatusButton();
 
-      if (!localStorage.getItem('lufop_api_key')) {
-        addLog('⚠️ Aucune clé API configurée', 'warning');
-        document.getElementById('api-key-modal').style.display = 'block';
+      const apiKey = localStorage.getItem('lufop_api_key');
+      if (!apiKey) {
+        addLog('⚠️ Aucune clé API', 'warning');
+        openApiKeyModal();
       } else {
-        addLog('✓ Clé API trouvée', 'success');
+        addLog('✅ Clé API présente', 'success');
       }
     };
   </script>
