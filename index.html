@@ -73,7 +73,7 @@
       color: #000; 
     }
 
-    /* Vitesse parfaitement centrée en hauteur et largeur */
+    /* Vitesse parfaitement centrée */
     #speed-display {
       position: fixed;
       top: 50%;
@@ -93,7 +93,7 @@
       margin-left: 5px;
     }
 
-    /* Panneau radar bien visible */
+    /* Panneau radar */
     #radar-panel {
       position: fixed;
       bottom: clamp(80px, 20vh, 140px);
@@ -143,7 +143,7 @@
       height: 100%;
       background: linear-gradient(90deg, #0f0, #ff0, #f00);
       width: 0%;
-      transition: width 0.3s;
+      transition: width 0.2s ease-out;
       border-radius: clamp(3px, 1vw, 6px);
     }
 
@@ -296,10 +296,11 @@
     .info-box.success { border-left-color: #0f0; }
     .info-box.danger { border-left-color: #f00; }
 
+    /* Debug à gauche maintenant */
     #debug-info {
       position: fixed;
-      top: clamp(60px, 15vh, 80px);
-      right: 5vw;
+      top: 10vh;
+      left: 5vw;
       background: rgba(0,0,0,0.9);
       padding: clamp(8px, 2vw, 12px);
       border: 2px solid #0ff;
@@ -314,6 +315,42 @@
       margin: clamp(2px, 0.5vh, 4px) 0;
       white-space: nowrap;
     }
+
+    /* Logs dans paramètres */
+    #debug-section {
+      margin-top: clamp(15px, 3vh, 25px);
+      border-top: 2px solid #0ff;
+      padding-top: clamp(10px, 2vh, 15px);
+    }
+    #debug-section h4 {
+      color: #0ff;
+      margin-bottom: clamp(8px, 2vh, 12px);
+      font-size: clamp(14px, 3.5vw, 18px);
+    }
+    #debug-log {
+      background: #000;
+      border: 2px solid #0f0;
+      border-radius: clamp(5px, 1.5vw, 8px);
+      padding: clamp(8px, 2vw, 12px);
+      min-height: 150px;
+      max-height: 250px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      font-family: 'Courier New', monospace;
+      font-size: clamp(10px, 2.5vw, 12px);
+      text-align: left;
+      line-height: 1.5;
+    }
+    .log-entry {
+      margin: 3px 0;
+      padding: 3px 0;
+      border-bottom: 1px solid #222;
+    }
+    .log-info { color: #0ff; }
+    .log-success { color: #0f0; }
+    .log-warning { color: #ff0; }
+    .log-error { color: #f00; }
+    .log-time { color: #888; font-size: 10px; margin-right: 5px; }
 
     /* Adaptations paysage */
     @media (orientation: landscape) {
@@ -334,7 +371,6 @@
       }
     }
 
-    /* Adaptations petits écrans */
     @media (max-width: 375px) {
       #top-controls {
         top: 5vh;
@@ -345,9 +381,12 @@
         font-size: 11px;
         padding: 6px 10px;
       }
+      #debug-info {
+        left: 3vw;
+        font-size: 9px;
+      }
     }
 
-    /* Adaptations grands écrans / tablettes */
     @media (min-width: 768px) {
       #speed-value {
         font-size: clamp(120px, 20vw, 200px);
@@ -368,16 +407,25 @@
 
     <h4>🔌 Source API</h4>
     <select id="api-source">
-      <option value="lufop" selected>Lufop API (officielle)</option>
+      <option value="lufop" selected>Lufop API (officielle, gratuite)</option>
       <option value="blitzer">Blitzer.de (non officielle ⚠️)</option>
     </select>
 
     <div class="info-box danger" id="blitzer-warning" style="display:none">
-      ⚠️ <b>Blitzer.de non officielle</b> - peut cesser de fonctionner
+      ⚠️ <b>Blitzer.de non officielle</b> - peut cesser de fonctionner à tout moment
+    </div>
+
+    <div class="info-box warning">
+      ℹ️ <b>Waze API ?</b> Des API Waze non officielles existent (OpenWeb Ninja, RapidAPI) mais :<br>
+      • Payantes (plusieurs €/mois)<br>
+      • Ne donnent QUE les signalements communauté (police visible, hazards)<br>
+      • PAS les radars fixes (données propriétaires Waze)<br>
+      • Illégal en France de signaler précisément les radars (1500€ amende)<br>
+      → <b>Non implémenté</b> pour ces raisons
     </div>
 
     <h4>🔑 Clé API (Lufop uniquement)</h4>
-    <input type="text" id="api-key" placeholder="Clé API Lufop">
+    <input type="text" id="api-key" placeholder="Clé API Lufop (32 caractères)">
 
     <h4>🌐 Méthode d'accès</h4>
     <select id="access-method">
@@ -409,17 +457,24 @@
     <input type="number" id="radar-count" placeholder="5000" min="100" max="25000" value="5000">
 
     <div class="info-box success">
-      ✅ <b>Zones d'alerte :</b><br>
-      • ≥130: 2000m avant / 100m après<br>
-      • 110: 1500m / 80m<br>
-      • 90: 1000m / 70m<br>
-      • 70-89: 800m / 60m<br>
-      • <70: 500m / 50m
+      ✅ <b>Zones d'alerte variables :</b><br>
+      • ≥130 km/h: 2000m avant / 100m après<br>
+      • 110 km/h: 1500m / 80m<br>
+      • 90 km/h: 1000m / 70m<br>
+      • 70-89 km/h: 800m / 60m<br>
+      • <70 km/h: 500m / 50m
     </div>
 
     <button id="btn-validate" onclick="saveSettings()">✓ VALIDER ET CHARGER</button>
     <button id="btn-clear" onclick="clearData()">🗑️ EFFACER CACHE</button>
     <button id="btn-close" onclick="closeModal()">✕ FERMER</button>
+
+    <div id="debug-section">
+      <h4>📋 Journal de débogage détaillé</h4>
+      <div id="debug-log">
+        <div class="log-entry log-info"><span class="log-time">--:--:--</span> ℹ️ Application démarrée</div>
+      </div>
+    </div>
   </div>
 
   <div id="top-controls">
@@ -429,12 +484,18 @@
   </div>
 
   <div id="debug-info">
-    <div>Heading: <span id="dbg-heading">--</span>°</div>
+    <div><b>📍 Position GPS</b></div>
     <div>Lat: <span id="dbg-lat">--</span></div>
     <div>Lon: <span id="dbg-lon">--</span></div>
+    <div>Alt: <span id="dbg-alt">--</span>m</div>
+    <div><b>🧭 Navigation</b></div>
+    <div>Heading: <span id="dbg-heading">--</span>°</div>
     <div>Speed: <span id="dbg-speed">--</span> km/h</div>
+    <div>Accuracy: <span id="dbg-accuracy">--</span>m</div>
+    <div><b>📡 Données</b></div>
     <div>Radars: <span id="dbg-radars">0</span></div>
     <div>Relevant: <span id="dbg-relevant">0</span></div>
+    <div>GPS refresh: <span id="dbg-refresh">--</span>ms</div>
   </div>
 
   <div id="speed-display">
@@ -460,10 +521,35 @@
     let lastBeepTime = 0;
     let audioContext = null;
     let debugMode = false;
+    let lastGPSUpdate = Date.now();
+    let gpsRefreshRate = 0;
+
+    function addLog(msg, type = 'info') {
+      console.log('[' + type + ']', msg);
+      const log = document.getElementById('debug-log');
+      if (!log) return;
+
+      const time = new Date().toLocaleTimeString('fr-FR');
+      const logClass = 'log-' + type;
+      const icon = type === 'error' ? '❌' : type === 'success' ? '✅' : type === 'warning' ? '⚠️' : 'ℹ️';
+
+      const entry = document.createElement('div');
+      entry.className = 'log-entry ' + logClass;
+      entry.innerHTML = '<span class="log-time">' + time + '</span>' + icon + ' ' + msg;
+
+      log.insertBefore(entry, log.firstChild);
+
+      while (log.children.length > 100) {
+        log.removeChild(log.lastChild);
+      }
+    }
 
     function toggleDebug() {
       debugMode = !debugMode;
       document.getElementById('debug-info').style.display = debugMode ? 'block' : 'none';
+      if (debugMode) {
+        addLog('Mode debug activé', 'info');
+      }
     }
 
     function toggleRadius() {
@@ -482,6 +568,7 @@
     function closeModal() {
       document.getElementById('settings-modal').style.display = 'none';
       document.getElementById('modal-overlay').style.display = 'none';
+      addLog('Modal fermée', 'info');
     }
 
     function openModal() {
@@ -503,6 +590,8 @@
 
       document.getElementById('blitzer-warning').style.display = 
         document.getElementById('api-source').value === 'blitzer' ? 'block' : 'none';
+
+      addLog('Modal ouverte', 'info');
     }
 
     document.getElementById('api-source').addEventListener('change', () => {
@@ -515,12 +604,16 @@
         localStorage.clear();
         radars = [];
         updateStatusButton();
+        addLog('Cache et données effacés', 'success');
         alert('✅ Données effacées');
       }
     }
 
     function initAudio() {
-      if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        addLog('Audio context initialisé', 'success');
+      }
     }
 
     function beep(freq = 1000, duration = 200) {
@@ -534,7 +627,10 @@
         gain.gain.setValueAtTime(0.3, audioContext.currentTime);
         osc.start();
         setTimeout(() => osc.stop(), duration);
-      } catch(e) {}
+        addLog('Alerte sonore: ' + freq + 'Hz', 'warning');
+      } catch(e) {
+        addLog('Erreur audio: ' + e.message, 'error');
+      }
     }
 
     function haversine(lat1, lon1, lat2, lon2) {
@@ -600,10 +696,16 @@
       const zoom = document.getElementById('zoom-level').value;
 
       if (apiSource === 'lufop' && !key) {
+        addLog('Clé API manquante', 'error');
         alert('❌ Clé API requise');
         openModal();
         return;
       }
+
+      addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
+      addLog('💾 Sauvegarde paramètres', 'info');
+      addLog('API: ' + apiSource + ', Méthode: ' + method, 'info');
+      addLog('Radars max: ' + nbr + ', France: ' + fr + ', Rayon: ' + (useR ? km + 'km' : 'Non'), 'info');
 
       localStorage.setItem('api_source', apiSource);
       localStorage.setItem('access_method', method);
@@ -632,32 +734,66 @@
       let url = 'https://api.lufop.net/api?key=' + key + '&format=json&nbr=' + nbr;
 
       if (fr && useR) {
-        if (!currentPos) { alert('GPS requis'); return; }
+        if (!currentPos) { 
+          addLog('Position GPS requise pour mode rayon', 'error');
+          alert('GPS requis'); 
+          return; 
+        }
         url += '&pays=fr&q=' + currentPos.latitude + ',' + currentPos.longitude + '&m=' + km;
+        addLog('Mode: France + Rayon ' + km + 'km', 'info');
       } else if (useR) {
-        if (!currentPos) { alert('GPS requis'); return; }
+        if (!currentPos) { 
+          addLog('Position GPS requise pour mode rayon', 'error');
+          alert('GPS requis'); 
+          return; 
+        }
         url += '&q=' + currentPos.latitude + ',' + currentPos.longitude + '&m=' + km;
+        addLog('Mode: Rayon ' + km + 'km (monde)', 'info');
       } else if (fr) {
         url += '&pays=fr';
+        addLog('Mode: France uniquement', 'info');
       }
 
       const finalUrl = method === 'proxy' ? 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url) : url;
+      addLog('URL: ' + url, 'info');
 
       try {
+        addLog('📡 Envoi requête Lufop...', 'info');
+        const startTime = Date.now();
         const r = await fetch(finalUrl);
+        const elapsed = Date.now() - startTime;
+
         if (!r.ok) throw new Error('HTTP ' + r.status);
-        const data = await r.json();
+
+        addLog('✅ Réponse reçue en ' + elapsed + 'ms', 'success');
+
+        const text = await r.text();
+        addLog('Taille: ' + Math.round(text.length / 1024) + ' Ko', 'info');
+
+        const data = JSON.parse(text);
+        addLog('JSON parsé: ' + data.length + ' radars', 'success');
+
         radars = data.map(x => ({
-          lat: parseFloat(x.latitude), lon: parseFloat(x.longitude),
-          speed: parseInt(x.vitesse || 50), flash: x.flash || 'D',
-          position: x.position || 'C', azimut: parseFloat(x.azimut || 0)
+          lat: parseFloat(x.latitude), 
+          lon: parseFloat(x.longitude),
+          speed: parseInt(x.vitesse || 50), 
+          flash: x.flash || 'D',
+          position: x.position || 'C', 
+          azimut: parseFloat(x.azimut || 0)
         }));
+
         localStorage.setItem('radars_cache', JSON.stringify(radars));
         localStorage.setItem('radars_date', new Date().toISOString());
         updateStatusButton();
+
+        addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'success');
+        addLog('🎉 SUCCÈS! ' + radars.length + ' radars chargés', 'success');
+        addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'success');
+
         alert('✅ ' + radars.length + ' radars chargés');
         closeModal();
       } catch(e) {
+        addLog('💥 ERREUR: ' + e.message, 'error');
         alert('❌ ' + e.message);
         document.getElementById('status-btn').textContent = 'Erreur';
         document.getElementById('status-btn').className = 'status-red';
@@ -665,7 +801,11 @@
     }
 
     async function loadBlitzer() {
-      if (!currentPos) { alert('GPS requis'); return; }
+      if (!currentPos) { 
+        addLog('Position GPS requise pour Blitzer', 'error');
+        alert('GPS requis'); 
+        return; 
+      }
 
       const km = parseFloat(localStorage.getItem('radius_km') || '1000');
       const zoom = parseInt(localStorage.getItem('zoom_level') || '8');
@@ -679,26 +819,46 @@
       const lonMax = Math.min(180, lon + deg);
       const box = latMin + ',' + lonMin + ',' + latMax + ',' + lonMax;
 
+      addLog('Blitzer: rayon ' + km + 'km, zoom ' + zoom, 'warning');
+      addLog('Box: ' + box, 'info');
+
       const url = 'https://cdn2.atudo.net/api/4.0/pois.php?z=' + zoom + '&type=0,1,2,3,4,5,6,101,102,103&box=' + box;
       const finalUrl = method === 'proxy' ? 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url) : url;
 
       try {
+        addLog('📡 Envoi requête Blitzer...', 'info');
+        const startTime = Date.now();
         const r = await fetch(finalUrl);
+        const elapsed = Date.now() - startTime;
+
         if (!r.ok) throw new Error('HTTP ' + r.status);
+
+        addLog('✅ Réponse reçue en ' + elapsed + 'ms', 'success');
+
         const data = await r.json();
         const pois = data.pois ? Object.values(data.pois) : (Array.isArray(data) ? data : []);
+
+        addLog('POIs trouvés: ' + pois.length, 'success');
+
         radars = pois.slice(0, parseInt(localStorage.getItem('radar_count') || '5000')).map(x => ({
           lat: parseFloat(x.lat || x.latitude || 0),
           lon: parseFloat(x.lng || x.lon || x.longitude || 0),
           speed: parseInt(x.speed || x.vmax || 50),
           flash: 'D', position: 'C', azimut: 0
         }));
+
         localStorage.setItem('radars_cache', JSON.stringify(radars));
         localStorage.setItem('radars_date', new Date().toISOString());
         updateStatusButton();
+
+        addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'success');
+        addLog('🎉 SUCCÈS! ' + radars.length + ' radars (Blitzer)', 'success');
+        addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'success');
+
         alert('✅ ' + radars.length + ' radars (Blitzer)');
         closeModal();
       } catch(e) {
+        addLog('💥 ERREUR Blitzer: ' + e.message, 'error');
         alert('❌ ' + e.message);
         document.getElementById('status-btn').textContent = 'Erreur';
         document.getElementById('status-btn').className = 'status-red';
@@ -728,17 +888,25 @@
       }
     }
 
+    // GPS OPTIMISÉ : maximumAge réduit pour refresh plus rapide
     navigator.geolocation.watchPosition(pos => {
+      const now = Date.now();
+      gpsRefreshRate = now - lastGPSUpdate;
+      lastGPSUpdate = now;
+
       currentPos = pos.coords;
       currentSpeed = (pos.coords.speed || 0) * 3.6;
       currentBearing = pos.coords.heading || 0;
 
       if (debugMode) {
         document.getElementById('dbg-heading').textContent = currentBearing.toFixed(0);
-        document.getElementById('dbg-lat').textContent = currentPos.latitude.toFixed(4);
-        document.getElementById('dbg-lon').textContent = currentPos.longitude.toFixed(4);
-        document.getElementById('dbg-speed').textContent = currentSpeed.toFixed(0);
+        document.getElementById('dbg-lat').textContent = currentPos.latitude.toFixed(6);
+        document.getElementById('dbg-lon').textContent = currentPos.longitude.toFixed(6);
+        document.getElementById('dbg-alt').textContent = (currentPos.altitude || 0).toFixed(0);
+        document.getElementById('dbg-speed').textContent = currentSpeed.toFixed(1);
+        document.getElementById('dbg-accuracy').textContent = (currentPos.accuracy || 0).toFixed(0);
         document.getElementById('dbg-radars').textContent = radars.length;
+        document.getElementById('dbg-refresh').textContent = gpsRefreshRate;
       }
 
       document.getElementById('speed-value').textContent = Math.round(currentSpeed);
@@ -759,6 +927,9 @@
         const zone = getAlertZone(radar.speed);
 
         if (radar.distance <= zone.before + zone.after) {
+          if (!activeRadar || activeRadar !== radar) {
+            addLog('🚨 Radar détecté: ' + radar.speed + 'km/h à ' + Math.round(radar.distance) + 'm', 'warning');
+          }
           activeRadar = radar;
 
           document.getElementById('radar-panel').style.display = 'block';
@@ -789,14 +960,14 @@
           document.getElementById('radar-marker').style.display = 'block';
           document.getElementById('radar-marker').style.left = radarPosition + '%';
 
-          const now = Date.now();
+          const nowBeep = Date.now();
           if (radar.distance <= zone.before && radar.distance > zone.before * 0.8 && lastBeepTime === 0) {
             beep(1500, 300);
-            lastBeepTime = now;
+            lastBeepTime = nowBeep;
           }
-          if (currentSpeed > radar.speed + 5 && now - lastBeepTime > 2000) {
+          if (currentSpeed > radar.speed + 5 && nowBeep - lastBeepTime > 2000) {
             beep(2000, 200);
-            lastBeepTime = now;
+            lastBeepTime = nowBeep;
           }
 
         } else {
@@ -806,9 +977,20 @@
         resetDisplay();
       }
 
-    }, null, { enableHighAccuracy: true, maximumAge: 1000 });
+    }, 
+    (error) => {
+      addLog('❌ Erreur GPS: ' + error.message + ' (code ' + error.code + ')', 'error');
+    }, 
+    { 
+      enableHighAccuracy: true, 
+      maximumAge: 500,  // RÉDUIT de 1000 à 500ms pour refresh plus rapide
+      timeout: 10000 
+    });
 
     function resetDisplay() {
+      if (activeRadar) {
+        addLog('Radar quitté', 'info');
+      }
       activeRadar = null;
       document.getElementById('radar-panel').style.display = 'none';
       document.getElementById('radar-marker').style.display = 'none';
@@ -818,13 +1000,21 @@
     }
 
     window.onload = () => {
+      addLog('🚀 Radar Alert Pro démarré', 'success');
+      addLog('Version: 2.0 - GPS optimisé', 'info');
+
       const cached = localStorage.getItem('radars_cache');
       if (cached) {
         try {
           radars = JSON.parse(cached);
-        } catch(e) {}
+          addLog('📦 Cache chargé: ' + radars.length + ' radars', 'success');
+        } catch(e) {
+          addLog('❌ Cache corrompu, ignoré', 'error');
+        }
       }
       updateStatusButton();
+
+      addLog('GPS: Attente position initiale...', 'info');
     };
   </script>
 
