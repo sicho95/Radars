@@ -1,0 +1,472 @@
+<!DOCTYPE html><html lang="fr"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Testeur Radar France</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      background: #000; 
+      color: #fff; 
+      font-family: Arial, sans-serif; 
+      overflow: hidden;
+      height: 100vh;
+    }
+    #status-btn {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      padding: 10px 15px;
+      border: 2px solid #fff;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      z-index: 1000;
+    }
+    .status-green { background: #0a0; color: #fff; }
+    .status-orange { background: #f80; color: #000; }
+    .status-red { background: #f00; color: #fff; }
+
+    #speed-display {
+      text-align: center;
+      font-size: 180px;
+      font-weight: bold;
+      margin-top: 120px;
+      text-shadow: 0 0 20px currentColor;
+    }
+    #speed-unit { font-size: 50px; vertical-align: super; margin-left: 5px; }
+
+    #radar-panel {
+      position: fixed;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.9);
+      border: 3px solid #fff;
+      border-radius: 15px;
+      padding: 20px;
+      min-width: 300px;
+      text-align: center;
+      display: none;
+    }
+    #radar-limit {
+      font-size: 60px;
+      font-weight: bold;
+      color: #f00;
+    }
+    #radar-distance {
+      font-size: 24px;
+      margin-top: 10px;
+    }
+
+    #gauge-container {
+      position: fixed;
+      bottom: 10px;
+      left: 10px;
+      right: 10px;
+      height: 40px;
+      background: #222;
+      border: 2px solid #fff;
+      border-radius: 5px;
+      overflow: hidden;
+    }
+    #gauge-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #0f0, #ff0, #f00);
+      width: 0%;
+      transition: width 0.3s;
+    }
+
+    .bg-green { background: #0a0 !important; }
+    .bg-orange { background: #f80 !important; }
+    .bg-red { background: #f00 !important; }
+
+    #api-key-modal {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #111;
+      border: 3px solid #fff;
+      padding: 20px;
+      border-radius: 10px;
+      z-index: 2000;
+      width: 90%;
+      max-width: 500px;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    #api-key-modal h3 {
+      margin-bottom: 10px;
+      color: #0ff;
+    }
+    #api-key-modal input {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      background: #222;
+      border: 2px solid #fff;
+      color: #fff;
+      font-size: 16px;
+      border-radius: 5px;
+    }
+    #api-key-modal button {
+      width: 100%;
+      padding: 12px;
+      background: #0a0;
+      border: none;
+      color: #fff;
+      font-size: 18px;
+      cursor: pointer;
+      border-radius: 5px;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+    #close-modal {
+      background: #666;
+      margin-top: 5px;
+    }
+    #debug-log {
+      background: #000;
+      border: 2px solid #0f0;
+      border-radius: 5px;
+      padding: 10px;
+      margin-top: 15px;
+      max-height: 300px;
+      overflow-y: auto;
+      font-family: monospace;
+      font-size: 11px;
+      text-align: left;
+      color: #0f0;
+    }
+    .log-info { color: #0ff; }
+    .log-success { color: #0f0; }
+    .log-warning { color: #ff0; }
+    .log-error { color: #f00; }
+    .log-time { color: #888; font-size: 10px; }
+  </style>
+</head>
+<body class="">
+
+  <div id="api-key-modal" style="display: none;">
+    <h3>🔑 Clé API Lufop</h3>
+    <p style="font-size:14px; margin:10px 0;">Obtiens ta clé gratuite sur <a href="https://api.lufop.net" target="_blank" style="color:#0ff">api.lufop.net</a></p>
+    <input type="text" id="api-key-input" placeholder="Colle ta clé API ici">
+    <button onclick="saveApiKey()">✓ Valider et Charger</button>
+    <button id="close-modal" onclick="closeModal()">✕ Fermer</button>
+    <div id="debug-log">
+      <div class="log-info">📋 Journal de débogage</div>
+      <div class="log-info">En attente...</div>
+    </div>
+  </div>
+
+  <div id="status-btn" class="status-red" onclick="updateRadars()" ondblclick="openApiKeyModal()" title="Clic: MAJ | Double-clic: Modifier clé">Pas de base</div>
+
+  <div id="speed-display">
+    <span id="speed-value">0</span><span id="speed-unit">km/h</span>
+  </div>
+
+  <div id="radar-panel" style="display: none;">
+    <div id="radar-limit">50</div>
+    <div id="radar-distance">Distance: 250m</div>
+  </div>
+
+  <div id="gauge-container">
+    <div id="gauge-fill" style="width: 0%;"></div>
+  </div>
+
+  <script>
+    let radars = [];
+    let currentPos = null;
+    let currentSpeed = 0;
+    let currentBearing = 0;
+    let activeRadar = null;
+    let lastBeepTime = 0;
+    let audioContext = null;
+
+    function addLog(msg, type = 'info') {
+      console.log(`[${type}]`, msg);
+      const log = document.getElementById('debug-log');
+      const time = new Date().toLocaleTimeString('fr-FR');
+      const logClass = `log-${type}`;
+      const icon = type === 'error' ? '❌' : type === 'success' ? '✓' : type === 'warning' ? '⚠️' : 'ℹ️';
+      log.innerHTML = `<div class="${logClass}">${icon} <span class="log-time">${time}</span> ${msg}</div>` + log.innerHTML;
+      log.scrollTop = 0;
+    }
+
+    function closeModal() {
+      document.getElementById('api-key-modal').style.display = 'none';
+    }
+
+    // Init Audio
+    function initAudio() {
+      if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+
+    function beep(freq = 1000, duration = 200) {
+      try {
+        initAudio();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        oscillator.frequency.value = freq;
+        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+        oscillator.start();
+        setTimeout(() => oscillator.stop(), duration);
+      } catch(e) {
+        addLog('Erreur audio: ' + e.message, 'warning');
+      }
+    }
+
+    // Calculs GPS
+    function haversine(lat1, lon1, lat2, lon2) {
+      const R = 6371e3;
+      const φ1 = lat1 * Math.PI / 180;
+      const φ2 = lat2 * Math.PI / 180;
+      const Δφ = (lat2 - lat1) * Math.PI / 180;
+      const Δλ = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+                Math.cos(φ1) * Math.cos(φ2) *
+                Math.sin(Δλ/2) * Math.sin(Δλ/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return R * c;
+    }
+
+    function bearing(lat1, lon1, lat2, lon2) {
+      const φ1 = lat1 * Math.PI / 180;
+      const φ2 = lat2 * Math.PI / 180;
+      const Δλ = (lon2 - lon1) * Math.PI / 180;
+      const y = Math.sin(Δλ) * Math.cos(φ2);
+      const x = Math.cos(φ1) * Math.sin(φ2) -
+                Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
+      const θ = Math.atan2(y, x);
+      return (θ * 180 / Math.PI + 360) % 360;
+    }
+
+    // Filtre radar pertinent
+    function isRelevantRadar(radar) {
+      if (!currentPos) return false;
+      const dist = haversine(currentPos.latitude, currentPos.longitude, 
+                             radar.lat, radar.lon);
+      if (dist > 1000) return false;
+
+      const bear = bearing(currentPos.latitude, currentPos.longitude,
+                           radar.lat, radar.lon);
+      const azimut = parseFloat(radar.azimut || 0);
+      const diffAzimut = Math.min(Math.abs(bear - azimut), 
+                                   360 - Math.abs(bear - azimut));
+
+      if (diffAzimut > 45) return false;
+      if (radar.flash !== 'F' && radar.flash !== 'D') return false;
+      if (radar.position === 'L') return false;
+
+      return true;
+    }
+
+    // Update radars Lufop - VERSION MOBILE DEBUG
+    async function updateRadars() {
+      const apiKey = localStorage.getItem('lufop_api_key');
+      if (!apiKey) {
+        addLog('Aucune clé API trouvée', 'warning');
+        document.getElementById('api-key-modal').style.display = 'block';
+        return;
+      }
+
+      const url = `https://api.lufop.net/api?key=${apiKey}&format=json&nbr=10000&pays=fr`;
+      addLog('🔄 Démarrage appel API...', 'info');
+      addLog('URL: ' + url.substring(0, 50) + '...', 'info');
+
+      try {
+        addLog('📡 Envoi requête fetch...', 'info');
+        const response = await fetch(url, {
+          method: 'GET',
+          mode: 'cors',
+          cache: 'no-cache'
+        });
+
+        addLog('📨 Réponse reçue - Status: ' + response.status, 'info');
+        addLog('Status Text: ' + response.statusText, 'info');
+
+        if (!response.ok) {
+          addLog('❌ HTTP Error: ' + response.status, 'error');
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const contentType = response.headers.get('content-type');
+        addLog('Content-Type: ' + (contentType || 'non défini'), 'info');
+
+        addLog('📄 Lecture du texte...', 'info');
+        const text = await response.text();
+        addLog('Taille réponse: ' + text.length + ' chars', 'info');
+        addLog('Début: ' + text.substring(0, 100) + '...', 'info');
+
+        addLog('🔍 Parse JSON...', 'info');
+        let data;
+        try {
+          data = JSON.parse(text);
+          addLog('✓ JSON parsé avec succès', 'success');
+        } catch (parseError) {
+          addLog('❌ Erreur JSON: ' + parseError.message, 'error');
+          addLog('Réponse brute: ' + text.substring(0, 200), 'error');
+          throw new Error('Réponse invalide: ' + parseError.message);
+        }
+
+        if (!Array.isArray(data)) {
+          addLog('❌ Type: ' + typeof data + ', attendu: Array', 'error');
+          addLog('Contenu: ' + JSON.stringify(data).substring(0, 100), 'error');
+          throw new Error('Format invalide (pas un tableau)');
+        }
+
+        addLog('📊 Nombre radars reçus: ' + data.length, 'success');
+
+        radars = data.map(r => ({
+          lat: parseFloat(r.latitude),
+          lon: parseFloat(r.longitude),
+          speed: parseInt(r.vitesse || 50),
+          flash: r.flash || 'D',
+          position: r.position || 'C',
+          azimut: parseFloat(r.azimut || 0)
+        }));
+
+        localStorage.setItem('radars_cache', JSON.stringify(radars));
+        localStorage.setItem('radars_date', new Date().toISOString());
+        updateStatusButton();
+
+        addLog('✓✓✓ SUCCÈS: ' + radars.length + ' radars chargés', 'success');
+        alert(`✓ ${radars.length} radars chargés avec succès!`);
+        closeModal();
+
+      } catch (e) {
+        addLog('❌❌ ERREUR FINALE: ' + e.message, 'error');
+        addLog('Type: ' + e.name, 'error');
+        addLog('Stack: ' + (e.stack ? e.stack.substring(0, 200) : 'N/A'), 'error');
+        alert('❌ Erreur: ' + e.message + '\n\nRegarde le journal dans la modale pour détails');
+      }
+    }
+
+    function updateStatusButton() {
+      const lastUpdate = localStorage.getItem('radars_date');
+      const btn = document.getElementById('status-btn');
+
+      if (!lastUpdate) {
+        btn.className = 'status-red';
+        btn.textContent = 'Pas de base';
+        return;
+      }
+
+      const daysDiff = (Date.now() - new Date(lastUpdate)) / (1000 * 60 * 60 * 24);
+      if (daysDiff < 1) {
+        btn.className = 'status-green';
+        btn.textContent = 'À jour';
+      } else if (daysDiff < 30) {
+        btn.className = 'status-orange';
+        btn.textContent = `MAJ: ${Math.floor(daysDiff)}j`;
+      } else {
+        btn.className = 'status-red';
+        btn.textContent = `MAJ: ${Math.floor(daysDiff)}j`;
+      }
+    }
+
+    function saveApiKey() {
+      const key = document.getElementById('api-key-input').value.trim();
+      if (key) {
+        addLog('💾 Sauvegarde clé API...', 'info');
+        addLog('Clé: ' + key.substring(0, 8) + '...', 'info');
+        localStorage.setItem('lufop_api_key', key);
+        document.getElementById('debug-log').innerHTML = '<div class="log-info">📋 Journal de débogage</div>';
+        updateRadars();
+      } else {
+        addLog('❌ Clé vide!', 'error');
+      }
+    }
+
+    function openApiKeyModal() {
+      document.getElementById('api-key-modal').style.display = 'block';
+      const currentKey = localStorage.getItem('lufop_api_key');
+      if (currentKey) {
+        document.getElementById('api-key-input').value = currentKey;
+        addLog('Clé actuelle: ' + currentKey.substring(0, 8) + '...', 'info');
+      }
+    }
+
+    // GPS Watch
+    navigator.geolocation.watchPosition(pos => {
+      currentPos = pos.coords;
+      currentSpeed = (pos.coords.speed || 0) * 3.6;
+      currentBearing = pos.coords.heading || 0;
+
+      document.getElementById('speed-value').textContent = Math.round(currentSpeed);
+
+      const relevant = radars.filter(isRelevantRadar)
+        .map(r => ({
+          ...r,
+          distance: haversine(currentPos.latitude, currentPos.longitude, r.lat, r.lon)
+        }))
+        .sort((a, b) => a.distance - b.distance);
+
+      if (relevant.length > 0 && relevant[0].distance < 500) {
+        const radar = relevant[0];
+        activeRadar = radar;
+
+        document.getElementById('radar-panel').style.display = 'block';
+        document.getElementById('radar-limit').textContent = radar.speed;
+        document.getElementById('radar-distance').textContent = `${Math.round(radar.distance)}m`;
+
+        if (currentSpeed <= radar.speed + 1) {
+          document.body.className = 'bg-green';
+        } else if (currentSpeed <= radar.speed + 4) {
+          document.body.className = 'bg-orange';
+        } else {
+          document.body.className = 'bg-red';
+        }
+
+        const now = Date.now();
+        if (radar.distance < 500 && lastBeepTime === 0) {
+          beep(1500, 300);
+          lastBeepTime = now;
+        }
+        if (currentSpeed > radar.speed + 4 && now - lastBeepTime > 2000) {
+          beep(2000, 200);
+          lastBeepTime = now;
+        }
+
+        const gaugeProgress = Math.max(0, Math.min(100, ((500 - radar.distance) / 550) * 100));
+        document.getElementById('gauge-fill').style.width = gaugeProgress + '%';
+
+      } else {
+        activeRadar = null;
+        document.getElementById('radar-panel').style.display = 'none';
+        document.body.className = '';
+        document.getElementById('gauge-fill').style.width = '0%';
+        lastBeepTime = 0;
+      }
+    }, null, { enableHighAccuracy: true, maximumAge: 1000 });
+
+    // Init
+    window.onload = () => {
+      addLog('🚀 Application démarrée', 'success');
+      const cached = localStorage.getItem('radars_cache');
+      if (cached) {
+        try {
+          radars = JSON.parse(cached);
+          addLog('📦 Cache chargé: ' + radars.length + ' radars', 'success');
+        } catch(e) {
+          addLog('❌ Erreur lecture cache: ' + e.message, 'error');
+        }
+      } else {
+        addLog('⚠️ Aucun cache trouvé', 'warning');
+      }
+      updateStatusButton();
+
+      if (!localStorage.getItem('lufop_api_key')) {
+        addLog('⚠️ Aucune clé API configurée', 'warning');
+        document.getElementById('api-key-modal').style.display = 'block';
+      } else {
+        addLog('✓ Clé API trouvée', 'success');
+      }
+    };
+  </script>
+
+
+
+</body></html>
