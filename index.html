@@ -239,6 +239,9 @@
     .info-box.warning {
       border-left-color: #ff0;
     }
+    .info-box.success {
+      border-left-color: #0f0;
+    }
 
     #debug-section {
       margin-top: 20px;
@@ -287,31 +290,29 @@
     <label>Obtiens ta clé gratuite sur <a href="https://api.lufop.net" target="_blank" style="color:#0ff">api.lufop.net</a></label>
     <input type="text" id="api-key-input" placeholder="Colle ta clé API ici (32 caractères)">
 
-    <h4>🌍 Zone géographique</h4>
+    <h4>🌍 Zone géographique (options cumulables)</h4>
 
-    <div class="checkbox-container" onclick="toggleCountryLimit()">
-      <input type="checkbox" id="limit-france" checked onchange="toggleCountryLimit()">
+    <div class="checkbox-container" onclick="document.getElementById('limit-france').click()">
+      <input type="checkbox" id="limit-france" checked onclick="event.stopPropagation()">
       <label for="limit-france">Limiter à la France uniquement</label>
     </div>
 
-    <div class="checkbox-container" onclick="toggleRadius()">
-      <input type="checkbox" id="use-radius" onchange="toggleRadius()">
-      <label for="use-radius">Utiliser un rayon autour de ma position</label>
+    <div class="checkbox-container" onclick="document.getElementById('use-radius').click()">
+      <input type="checkbox" id="use-radius" onclick="event.stopPropagation(); toggleRadius()">
+      <label for="use-radius">Limiter par rayon autour de ma position</label>
     </div>
 
     <div class="radius-group disabled" id="radius-group">
-      <label>Rayon en kilomètres (ex: 100 pour 100 km autour de toi)</label>
+      <label>Rayon en kilomètres (10 à 5000)</label>
       <input type="number" id="radius-km" placeholder="1000" min="10" max="5000" value="1000">
-      <div class="info-box warning">
-        ⚠️ <b>Mode rayon :</b> Désactive la limite "France" pour obtenir les radars à l'étranger autour de ta position (Europe, etc.)
-      </div>
     </div>
 
-    <div class="info-box">
+    <div class="info-box success">
       💡 <b>Exemples d'utilisation :</b><br>
-      • France uniquement = Tous les radars français (4716)<br>
-      • Rayon 100 km = Radars dans 100 km autour de toi<br>
-      • Rayon 1000 km + sans limite France = Toute l'Europe autour de toi
+      • <b>France uniquement</b> (☑️France, ☐Rayon) → Tous les radars français (4716)<br>
+      • <b>Europe complète</b> (☐France, ☑️Rayon 1000km) → FR+IT+ES+BE+CH+DE...<br>
+      • <b>Frontalier</b> (☑️France, ☑️Rayon 100km) → Radars FR dans 100km autour de toi<br>
+      • <b>Monde entier</b> (☐France, ☐Rayon) → Tous pays limité par nbr max
     </div>
 
     <h4>📊 Nombre maximum de radars</h4>
@@ -363,26 +364,12 @@
     let lastBeepTime = 0;
     let audioContext = null;
 
-    function toggleCountryLimit() {
-      const checkbox = document.getElementById('limit-france');
-      const useRadius = document.getElementById('use-radius');
-
-      // Si on active la limite France, on désactive le rayon
-      if (checkbox.checked && useRadius.checked) {
-        useRadius.checked = false;
-        toggleRadius();
-      }
-    }
-
     function toggleRadius() {
       const checkbox = document.getElementById('use-radius');
       const radiusGroup = document.getElementById('radius-group');
-      const limitFrance = document.getElementById('limit-france');
 
       if (checkbox.checked) {
         radiusGroup.classList.remove('disabled');
-        // Si on active le rayon, on désactive la limite France
-        limitFrance.checked = false;
         addLog('Mode rayon activé', 'info');
       } else {
         radiusGroup.classList.add('disabled');
@@ -534,26 +521,45 @@
       addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
       addLog('🚀 CHARGEMENT RADARS', 'info');
 
-      // Construire l'URL de l'API
+      // Construire l'URL de l'API avec cumul possible France + rayon
       let apiUrl = `https://api.lufop.net/api?key=${apiKey}&format=json&nbr=${radarCount}`;
+      let modeDescription = '';
 
-      if (useRadius) {
-        // Mode rayon : utiliser la position GPS actuelle
+      // Les deux options peuvent être cumulées
+      if (limitFrance && useRadius) {
+        // Mode CUMUL : France + rayon
+        if (!currentPos) {
+          addLog('❌ Position GPS non disponible', 'error');
+          alert('❌ Position GPS requise pour le mode rayon.\nActive ta localisation et réessaie.');
+          return;
+        }
+        apiUrl += `&pays=fr&q=${currentPos.latitude},${currentPos.longitude}&m=${radiusKm}`;
+        modeDescription = `🇫🇷 France + 📍 Rayon ${radiusKm}km`;
+        addLog('Mode: France + rayon ' + radiusKm + ' km', 'info');
+        addLog(`Position: ${currentPos.latitude.toFixed(4)}, ${currentPos.longitude.toFixed(4)}`, 'info');
+
+      } else if (useRadius) {
+        // Mode rayon seul (tous pays)
         if (!currentPos) {
           addLog('❌ Position GPS non disponible', 'error');
           alert('❌ Position GPS requise pour le mode rayon.\nActive ta localisation et réessaie.');
           return;
         }
         apiUrl += `&q=${currentPos.latitude},${currentPos.longitude}&m=${radiusKm}`;
-        addLog(`📍 Mode rayon: ${radiusKm} km autour de ta position`, 'info');
+        modeDescription = `🌍 Monde + 📍 Rayon ${radiusKm}km`;
+        addLog('Mode: Rayon ' + radiusKm + ' km (tous pays)', 'info');
         addLog(`Position: ${currentPos.latitude.toFixed(4)}, ${currentPos.longitude.toFixed(4)}`, 'info');
+
       } else if (limitFrance) {
-        // Mode pays France
+        // Mode France seule
         apiUrl += '&pays=fr';
-        addLog('🇫🇷 Mode: France uniquement', 'info');
+        modeDescription = '🇫🇷 France uniquement';
+        addLog('Mode: France uniquement', 'info');
+
       } else {
-        // Mode mondial (pas de filtre)
-        addLog('🌍 Mode: Monde entier (max ' + radarCount + ')', 'warning');
+        // Mode monde entier
+        modeDescription = '🌍 Monde entier';
+        addLog('Mode: Monde entier (max ' + radarCount + ')', 'info');
       }
 
       const url = `https://api.allorigins.win/raw?url=${encodeURIComponent(apiUrl)}`;
@@ -623,9 +629,10 @@
 
         addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'success');
         addLog('🎉 SUCCÈS! ' + radars.length + ' radars', 'success');
+        addLog('Mode: ' + modeDescription, 'success');
         addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'success');
 
-        alert('✅ ' + radars.length + ' radars chargés avec succès!');
+        alert('✅ ' + radars.length + ' radars chargés!\n' + modeDescription);
 
       } catch (e) {
         addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'error');
@@ -686,10 +693,13 @@
       }
 
       addLog('💾 Enregistrement paramètres...', 'info');
-      addLog('Clé: ' + key.substring(0, 8) + '...', 'info');
       addLog('Radars max: ' + radarCount, 'info');
-      addLog('Limite France: ' + (limitFrance ? 'Oui' : 'Non'), 'info');
-      addLog('Mode rayon: ' + (useRadius ? radiusKm + ' km' : 'Non'), 'info');
+      addLog('France: ' + (limitFrance ? 'Oui' : 'Non'), 'info');
+      addLog('Rayon: ' + (useRadius ? radiusKm + ' km' : 'Non'), 'info');
+
+      if (limitFrance && useRadius) {
+        addLog('✅ Mode CUMUL: France + Rayon activé', 'success');
+      }
 
       localStorage.setItem('lufop_api_key', key);
       localStorage.setItem('radar_count', radarCount);
