@@ -29,7 +29,6 @@
       touch-action: none;
     }
 
-    /* Boutons en haut à droite avec marges 10% */
     #top-controls {
       position: fixed;
       top: 10vh;
@@ -73,7 +72,6 @@
       color: #000; 
     }
 
-    /* Vitesse parfaitement centrée */
     #speed-display {
       position: fixed;
       top: 50%;
@@ -93,7 +91,6 @@
       margin-left: 5px;
     }
 
-    /* Panneau radar */
     #radar-panel {
       position: fixed;
       bottom: clamp(80px, 20vh, 140px);
@@ -126,7 +123,6 @@
       font-style: italic;
     }
 
-    /* Barre en bas avec 10% de marge */
     #gauge-container {
       position: fixed;
       bottom: 10vh;
@@ -188,12 +184,53 @@
       max-height: 90vh;
       background: #111;
       border: 3px solid #0ff;
-      padding: clamp(12px, 3vw, 20px);
       border-radius: clamp(8px, 2vw, 15px);
       z-index: 2000;
       display: none;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Système d'onglets */
+    #tab-container {
+      display: flex;
+      border-bottom: 2px solid #0ff;
+      background: #000;
+    }
+    .tab-button {
+      flex: 1;
+      padding: clamp(12px, 3vh, 16px);
+      background: #222;
+      border: none;
+      color: #888;
+      font-size: clamp(14px, 3.5vw, 18px);
+      font-weight: bold;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      transition: all 0.3s;
+    }
+    .tab-button.active {
+      background: #111;
+      color: #0ff;
+      border-bottom-color: #0ff;
+    }
+    .tab-button:first-child {
+      border-radius: clamp(8px, 2vw, 15px) 0 0 0;
+    }
+    .tab-button:last-child {
+      border-radius: 0 clamp(8px, 2vw, 15px) 0 0;
+    }
+
+    .tab-content {
+      flex: 1;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
+      padding: clamp(12px, 3vw, 20px);
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
     }
 
     #settings-modal h3 {
@@ -296,7 +333,6 @@
     .info-box.success { border-left-color: #0f0; }
     .info-box.danger { border-left-color: #f00; }
 
-    /* Debug à gauche maintenant */
     #debug-info {
       position: fixed;
       top: 10vh;
@@ -316,24 +352,13 @@
       white-space: nowrap;
     }
 
-    /* Logs dans paramètres */
-    #debug-section {
-      margin-top: clamp(15px, 3vh, 25px);
-      border-top: 2px solid #0ff;
-      padding-top: clamp(10px, 2vh, 15px);
-    }
-    #debug-section h4 {
-      color: #0ff;
-      margin-bottom: clamp(8px, 2vh, 12px);
-      font-size: clamp(14px, 3.5vw, 18px);
-    }
     #debug-log {
       background: #000;
       border: 2px solid #0f0;
       border-radius: clamp(5px, 1.5vw, 8px);
       padding: clamp(8px, 2vw, 12px);
-      min-height: 150px;
-      max-height: 250px;
+      min-height: 200px;
+      max-height: 60vh;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
       font-family: 'Courier New', monospace;
@@ -352,7 +377,6 @@
     .log-error { color: #f00; }
     .log-time { color: #888; font-size: 10px; margin-right: 5px; }
 
-    /* Adaptations paysage */
     @media (orientation: landscape) {
       #speed-value {
         font-size: clamp(80px, 18vh, 140px);
@@ -403,74 +427,72 @@
   <div id="modal-overlay"></div>
 
   <div id="settings-modal">
-    <h3>⚙️ Configuration</h3>
-
-    <h4>🔌 Source API</h4>
-    <select id="api-source">
-      <option value="lufop" selected>Lufop API (officielle, gratuite)</option>
-      <option value="blitzer">Blitzer.de (non officielle ⚠️)</option>
-    </select>
-
-    <div class="info-box danger" id="blitzer-warning" style="display:none">
-      ⚠️ <b>Blitzer.de non officielle</b> - peut cesser de fonctionner à tout moment
+    <div id="tab-container">
+      <button class="tab-button active" onclick="switchTab('settings')">⚙️ Paramètres</button>
+      <button class="tab-button" onclick="switchTab('logs')">📋 Journal</button>
     </div>
 
-    <div class="info-box warning">
-      ℹ️ <b>Waze API ?</b> Des API Waze non officielles existent (OpenWeb Ninja, RapidAPI) mais :<br>
-      • Payantes (plusieurs €/mois)<br>
-      • Ne donnent QUE les signalements communauté (police visible, hazards)<br>
-      • PAS les radars fixes (données propriétaires Waze)<br>
-      • Illégal en France de signaler précisément les radars (1500€ amende)<br>
-      → <b>Non implémenté</b> pour ces raisons
+    <div id="tab-settings" class="tab-content active">
+      <h3>⚙️ Configuration</h3>
+
+      <h4>🔌 Source API</h4>
+      <select id="api-source">
+        <option value="lufop" selected>Lufop API (officielle)</option>
+        <option value="blitzer">Blitzer.de (non officielle ⚠️)</option>
+      </select>
+
+      <div class="info-box danger" id="blitzer-warning" style="display:none">
+        ⚠️ <b>Blitzer.de non officielle</b> - peut cesser de fonctionner à tout moment
+      </div>
+
+      <h4>🔑 Clé API (Lufop uniquement)</h4>
+      <input type="text" id="api-key" placeholder="Clé API Lufop (32 caractères)">
+
+      <h4>🌐 Méthode d'accès</h4>
+      <select id="access-method">
+        <option value="proxy" selected>Via Proxy (recommandé)</option>
+        <option value="direct">Accès direct</option>
+      </select>
+
+      <h4>🌍 Zone géographique</h4>
+
+      <div class="checkbox-container" onclick="document.getElementById('limit-france').click()">
+        <input type="checkbox" id="limit-france" checked onclick="event.stopPropagation()">
+        <label for="limit-france">Limiter à la France</label>
+      </div>
+
+      <div class="checkbox-container" onclick="document.getElementById('use-radius').click()">
+        <input type="checkbox" id="use-radius" onclick="event.stopPropagation(); toggleRadius()">
+        <label for="use-radius">Limiter par rayon</label>
+      </div>
+
+      <div class="radius-group disabled" id="radius-group">
+        <label>Rayon en km (10-5000)</label>
+        <input type="number" id="radius-km" placeholder="1000" min="10" max="5000" value="1000">
+      </div>
+
+      <h4>🔍 Zoom Blitzer.de (1=large, 15=détaillé)</h4>
+      <input type="number" id="zoom-level" placeholder="8" min="1" max="15" value="8">
+
+      <h4>📊 Nombre max de radars</h4>
+      <input type="number" id="radar-count" placeholder="5000" min="100" max="25000" value="5000">
+
+      <div class="info-box success">
+        ✅ <b>Zones d'alerte variables :</b><br>
+        • ≥130 km/h: 2000m avant / 100m après<br>
+        • 110 km/h: 1500m / 80m<br>
+        • 90 km/h: 1000m / 70m<br>
+        • 70-89 km/h: 800m / 60m<br>
+        • <70 km/h: 500m / 50m
+      </div>
+
+      <button id="btn-validate" onclick="saveSettings()">✓ VALIDER ET CHARGER</button>
+      <button id="btn-clear" onclick="clearData()">🗑️ EFFACER CACHE</button>
+      <button id="btn-close" onclick="closeModal()">✕ FERMER</button>
     </div>
 
-    <h4>🔑 Clé API (Lufop uniquement)</h4>
-    <input type="text" id="api-key" placeholder="Clé API Lufop (32 caractères)">
-
-    <h4>🌐 Méthode d'accès</h4>
-    <select id="access-method">
-      <option value="proxy" selected>Via Proxy (recommandé)</option>
-      <option value="direct">Accès direct</option>
-    </select>
-
-    <h4>🌍 Zone géographique</h4>
-
-    <div class="checkbox-container" onclick="document.getElementById('limit-france').click()">
-      <input type="checkbox" id="limit-france" checked onclick="event.stopPropagation()">
-      <label for="limit-france">Limiter à la France</label>
-    </div>
-
-    <div class="checkbox-container" onclick="document.getElementById('use-radius').click()">
-      <input type="checkbox" id="use-radius" onclick="event.stopPropagation(); toggleRadius()">
-      <label for="use-radius">Limiter par rayon</label>
-    </div>
-
-    <div class="radius-group disabled" id="radius-group">
-      <label>Rayon en km (10-5000)</label>
-      <input type="number" id="radius-km" placeholder="1000" min="10" max="5000" value="1000">
-    </div>
-
-    <h4>🔍 Zoom Blitzer.de (1=large, 15=détaillé)</h4>
-    <input type="number" id="zoom-level" placeholder="8" min="1" max="15" value="8">
-
-    <h4>📊 Nombre max de radars</h4>
-    <input type="number" id="radar-count" placeholder="5000" min="100" max="25000" value="5000">
-
-    <div class="info-box success">
-      ✅ <b>Zones d'alerte variables :</b><br>
-      • ≥130 km/h: 2000m avant / 100m après<br>
-      • 110 km/h: 1500m / 80m<br>
-      • 90 km/h: 1000m / 70m<br>
-      • 70-89 km/h: 800m / 60m<br>
-      • <70 km/h: 500m / 50m
-    </div>
-
-    <button id="btn-validate" onclick="saveSettings()">✓ VALIDER ET CHARGER</button>
-    <button id="btn-clear" onclick="clearData()">🗑️ EFFACER CACHE</button>
-    <button id="btn-close" onclick="closeModal()">✕ FERMER</button>
-
-    <div id="debug-section">
-      <h4>📋 Journal de débogage détaillé</h4>
+    <div id="tab-logs" class="tab-content">
+      <h3>📋 Journal de débogage détaillé</h3>
       <div id="debug-log">
         <div class="log-entry log-info"><span class="log-time">--:--:--</span> ℹ️ Application démarrée</div>
       </div>
@@ -523,6 +545,28 @@
     let debugMode = false;
     let lastGPSUpdate = Date.now();
     let gpsRefreshRate = 0;
+    let currentTab = 'settings';
+
+    function switchTab(tabName) {
+      currentTab = tabName;
+
+      document.querySelectorAll('.tab-button').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+      });
+
+      if (tabName === 'settings') {
+        document.querySelector('.tab-button:first-child').classList.add('active');
+        document.getElementById('tab-settings').classList.add('active');
+      } else {
+        document.querySelector('.tab-button:last-child').classList.add('active');
+        document.getElementById('tab-logs').classList.add('active');
+      }
+
+      addLog('Onglet ' + (tabName === 'settings' ? 'Paramètres' : 'Journal') + ' affiché', 'info');
+    }
 
     function addLog(msg, type = 'info') {
       console.log('[' + type + ']', msg);
@@ -539,7 +583,7 @@
 
       log.insertBefore(entry, log.firstChild);
 
-      while (log.children.length > 100) {
+      while (log.children.length > 200) {
         log.removeChild(log.lastChild);
       }
     }
@@ -573,7 +617,7 @@
 
     function openModal() {
       document.getElementById('modal-overlay').style.display = 'block';
-      document.getElementById('settings-modal').style.display = 'block';
+      document.getElementById('settings-modal').style.display = 'flex';
 
       document.getElementById('api-source').value = localStorage.getItem('api_source') || 'lufop';
       document.getElementById('access-method').value = localStorage.getItem('access_method') || 'proxy';
@@ -755,23 +799,51 @@
       }
 
       const finalUrl = method === 'proxy' ? 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url) : url;
-      addLog('URL: ' + url, 'info');
+      addLog('URL finale: ' + (method === 'proxy' ? '[PROXY] ' : '[DIRECT] ') + url, 'info');
 
       try {
-        addLog('📡 Envoi requête Lufop...', 'info');
+        addLog('📡 Envoi requête Lufop... (timeout 60s)', 'info');
         const startTime = Date.now();
-        const r = await fetch(finalUrl);
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 60000);
+
+        const r = await fetch(finalUrl, { 
+          signal: controller.signal,
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'RadarAlertPro/2.0'
+          }
+        });
+        clearTimeout(timeoutId);
+
         const elapsed = Date.now() - startTime;
 
-        if (!r.ok) throw new Error('HTTP ' + r.status);
+        addLog('✅ Réponse HTTP reçue en ' + elapsed + 'ms', 'success');
+        addLog('Status: ' + r.status + ' ' + r.statusText, r.ok ? 'success' : 'error');
+        addLog('Headers: ' + r.headers.get('content-type'), 'info');
 
-        addLog('✅ Réponse reçue en ' + elapsed + 'ms', 'success');
+        if (!r.ok) {
+          const errorBody = await r.text();
+          addLog('Body erreur: ' + errorBody.substring(0, 500), 'error');
+          throw new Error('HTTP ' + r.status + ' ' + r.statusText + ' - ' + errorBody.substring(0, 100));
+        }
 
         const text = await r.text();
-        addLog('Taille: ' + Math.round(text.length / 1024) + ' Ko', 'info');
+        addLog('Taille réponse: ' + Math.round(text.length / 1024) + ' Ko (' + text.length + ' octets)', 'info');
+
+        if (text.length < 10) {
+          addLog('Réponse trop courte: "' + text + '"', 'error');
+          throw new Error('Réponse vide ou invalide');
+        }
 
         const data = JSON.parse(text);
-        addLog('JSON parsé: ' + data.length + ' radars', 'success');
+        addLog('JSON parsé avec succès: ' + (Array.isArray(data) ? data.length : 'NON-ARRAY') + ' éléments', 'success');
+
+        if (!Array.isArray(data)) {
+          addLog('Type reçu: ' + typeof data + ' - ' + JSON.stringify(data).substring(0, 200), 'error');
+          throw new Error('Format JSON invalide (pas un tableau)');
+        }
 
         radars = data.map(x => ({
           lat: parseFloat(x.latitude), 
@@ -782,19 +854,39 @@
           azimut: parseFloat(x.azimut || 0)
         }));
 
+        addLog('Mapping radars: ' + radars.length + ' radars transformés', 'success');
+
         localStorage.setItem('radars_cache', JSON.stringify(radars));
         localStorage.setItem('radars_date', new Date().toISOString());
         updateStatusButton();
 
         addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'success');
-        addLog('🎉 SUCCÈS! ' + radars.length + ' radars chargés', 'success');
+        addLog('🎉 SUCCÈS TOTAL! ' + radars.length + ' radars chargés en ' + elapsed + 'ms', 'success');
         addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'success');
 
         alert('✅ ' + radars.length + ' radars chargés');
         closeModal();
       } catch(e) {
-        addLog('💥 ERREUR: ' + e.message, 'error');
-        alert('❌ ' + e.message);
+        let errorMsg = e.message || e.toString();
+
+        if (e.name === 'AbortError') {
+          errorMsg = 'TIMEOUT après 60 secondes';
+          addLog('⏱️ TIMEOUT: La requête a dépassé 60 secondes', 'error');
+        } else if (errorMsg.includes('NetworkError') || errorMsg.includes('Failed to fetch')) {
+          errorMsg = 'ERREUR RÉSEAU - Vérifiez connexion Internet';
+          addLog('🌐 Erreur réseau détectée', 'error');
+        } else if (errorMsg.includes('JSON')) {
+          errorMsg = 'ERREUR PARSING JSON - Réponse corrompue';
+          addLog('📄 Erreur parsing JSON', 'error');
+        }
+
+        addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'error');
+        addLog('💥 ÉCHEC COMPLET: ' + errorMsg, 'error');
+        addLog('Type erreur: ' + e.name, 'error');
+        addLog('Stack: ' + (e.stack ? e.stack.substring(0, 300) : 'N/A'), 'error');
+        addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'error');
+
+        alert('❌ ' + errorMsg);
         document.getElementById('status-btn').textContent = 'Erreur';
         document.getElementById('status-btn').className = 'status-red';
       }
@@ -820,20 +912,31 @@
       const box = latMin + ',' + lonMin + ',' + latMax + ',' + lonMax;
 
       addLog('Blitzer: rayon ' + km + 'km, zoom ' + zoom, 'warning');
-      addLog('Box: ' + box, 'info');
+      addLog('Box géographique: ' + box, 'info');
 
       const url = 'https://cdn2.atudo.net/api/4.0/pois.php?z=' + zoom + '&type=0,1,2,3,4,5,6,101,102,103&box=' + box;
       const finalUrl = method === 'proxy' ? 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url) : url;
 
       try {
-        addLog('📡 Envoi requête Blitzer...', 'info');
+        addLog('📡 Envoi requête Blitzer... (timeout 60s)', 'info');
         const startTime = Date.now();
-        const r = await fetch(finalUrl);
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 60000);
+
+        const r = await fetch(finalUrl, { signal: controller.signal });
+        clearTimeout(timeoutId);
+
         const elapsed = Date.now() - startTime;
 
-        if (!r.ok) throw new Error('HTTP ' + r.status);
+        addLog('✅ Réponse HTTP reçue en ' + elapsed + 'ms', 'success');
+        addLog('Status: ' + r.status + ' ' + r.statusText, r.ok ? 'success' : 'error');
 
-        addLog('✅ Réponse reçue en ' + elapsed + 'ms', 'success');
+        if (!r.ok) {
+          const errorBody = await r.text();
+          addLog('Body erreur: ' + errorBody.substring(0, 500), 'error');
+          throw new Error('HTTP ' + r.status + ' ' + r.statusText);
+        }
 
         const data = await r.json();
         const pois = data.pois ? Object.values(data.pois) : (Array.isArray(data) ? data : []);
@@ -852,14 +955,24 @@
         updateStatusButton();
 
         addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'success');
-        addLog('🎉 SUCCÈS! ' + radars.length + ' radars (Blitzer)', 'success');
+        addLog('🎉 SUCCÈS! ' + radars.length + ' radars (Blitzer) en ' + elapsed + 'ms', 'success');
         addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'success');
 
         alert('✅ ' + radars.length + ' radars (Blitzer)');
         closeModal();
       } catch(e) {
-        addLog('💥 ERREUR Blitzer: ' + e.message, 'error');
-        alert('❌ ' + e.message);
+        let errorMsg = e.message || e.toString();
+
+        if (e.name === 'AbortError') {
+          errorMsg = 'TIMEOUT après 60 secondes';
+        }
+
+        addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'error');
+        addLog('💥 ÉCHEC Blitzer: ' + errorMsg, 'error');
+        addLog('Type erreur: ' + e.name, 'error');
+        addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'error');
+
+        alert('❌ ' + errorMsg);
         document.getElementById('status-btn').textContent = 'Erreur';
         document.getElementById('status-btn').className = 'status-red';
       }
@@ -888,7 +1001,6 @@
       }
     }
 
-    // GPS OPTIMISÉ : maximumAge réduit pour refresh plus rapide
     navigator.geolocation.watchPosition(pos => {
       const now = Date.now();
       gpsRefreshRate = now - lastGPSUpdate;
@@ -979,11 +1091,13 @@
 
     }, 
     (error) => {
-      addLog('❌ Erreur GPS: ' + error.message + ' (code ' + error.code + ')', 'error');
+      const errCodes = ['PERMISSION_DENIED', 'POSITION_UNAVAILABLE', 'TIMEOUT'];
+      const errName = errCodes[error.code - 1] || 'UNKNOWN';
+      addLog('❌ Erreur GPS [' + errName + ' (code ' + error.code + ')]: ' + error.message, 'error');
     }, 
     { 
       enableHighAccuracy: true, 
-      maximumAge: 500,  // RÉDUIT de 1000 à 500ms pour refresh plus rapide
+      maximumAge: 500,
       timeout: 10000 
     });
 
@@ -1001,7 +1115,7 @@
 
     window.onload = () => {
       addLog('🚀 Radar Alert Pro démarré', 'success');
-      addLog('Version: 2.0 - GPS optimisé', 'info');
+      addLog('Version: 2.1 - Logs détaillés + Timeout 60s', 'info');
 
       const cached = localStorage.getItem('radars_cache');
       if (cached) {
@@ -1009,7 +1123,7 @@
           radars = JSON.parse(cached);
           addLog('📦 Cache chargé: ' + radars.length + ' radars', 'success');
         } catch(e) {
-          addLog('❌ Cache corrompu, ignoré', 'error');
+          addLog('❌ Cache corrompu: ' + e.message, 'error');
         }
       }
       updateStatusButton();
