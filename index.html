@@ -447,21 +447,18 @@
       <h4>🔑 Clé API (Lufop uniquement)</h4>
       <input type="text" id="api-key" placeholder="Clé API Lufop (32 caractères)">
 
-      <h4>🌐 Proxy CORS (avec fallback automatique)</h4>
+      <h4>🌐 Proxy CORS</h4>
       <select id="cors-proxy">
-        <option value="thingproxy" selected>ThingProxy (10 Mo) 🔥</option>
-        <option value="cfworker">Cloudflare Worker (25 Mo) 🚀</option>
-        <option value="jsonproxy">JSONProxy.io (5 Mo)</option>
-        <option value="corsh">CORS.SH (10 Mo)</option>
-        <option value="allorigins">AllOrigins (limite 1 Mo)</option>
-        <option value="corsproxy">CorsProxy.io (limite 1 Mo)</option>
+        <option value="direct" selected>🔥 DIRECT (sans proxy) - Recommandé</option>
+        <option value="allorigins">AllOrigins (stable)</option>
+        <option value="corsproxy">CorsProxy.io</option>
       </select>
 
-      <div class="info-box warning">
-        ⚙️ <b>Fallback automatique :</b><br>
-        Si le proxy choisi échoue, l'app essaiera automatiquement les 5 autres dans l'ordre.<br>
-        Timeout : 120 secondes par tentative.<br><br>
-        🔥 <b>Nouveaux proxies :</b> ThingProxy, Cloudflare Worker, JSONProxy et CORS.SH supportent les gros fichiers (5-25 Mo)
+      <div class="info-box success">
+        ✅ <b>Mode DIRECT recommandé :</b><br>
+        Essaye d'abord sans proxy (peut fonctionner sur certains réseaux).<br>
+        Si échec CORS → Teste AllOrigins puis CorsProxy.io<br>
+        Timeout : 120 secondes par tentative.
       </div>
 
       <h4>🌍 Zone géographique</h4>
@@ -485,7 +482,13 @@
       <input type="number" id="zoom-level" placeholder="8" min="1" max="15" value="8">
 
       <h4>📊 Nombre max de radars</h4>
-      <input type="number" id="radar-count" placeholder="5000" min="100" max="25000" value="5000">
+      <input type="number" id="radar-count" placeholder="2500" min="100" max="25000" value="2500">
+
+      <div class="info-box warning">
+        ⚠️ <b>Taille réduite par défaut :</b><br>
+        2500 radars = ~1 Mo (compatible tous proxies)<br>
+        5000 radars = ~2 Mo (peut échouer avec certains proxies)
+      </div>
 
       <div class="info-box success">
         ✅ <b>Zones d'alerte variables :</b><br>
@@ -557,12 +560,9 @@
     let gpsRefreshRate = 0;
     let currentTab = 'settings';
 
-    // Configuration des 6 proxies CORS (4 nouveaux + 2 anciens)
+    // Configuration des proxies CORS (3 options : direct + 2 proxies stables)
     const PROXIES = {
-      thingproxy: (url) => 'https://thingproxy.freeboard.io/fetch/' + encodeURIComponent(url),
-      cfworker: (url) => 'https://cors-anywhere.herokuapp.com/' + url,
-      jsonproxy: (url) => 'https://jsonp.afeld.me/?url=' + encodeURIComponent(url),
-      corsh: (url) => 'https://cors.sh/' + url,
+      direct: (url) => url,  // Pas de proxy, tentative directe
       allorigins: (url) => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url),
       corsproxy: (url) => 'https://corsproxy.io/?' + encodeURIComponent(url)
     };
@@ -640,9 +640,9 @@
       document.getElementById('settings-modal').style.display = 'flex';
 
       document.getElementById('api-source').value = localStorage.getItem('api_source') || 'lufop';
-      document.getElementById('cors-proxy').value = localStorage.getItem('cors_proxy') || 'thingproxy';
+      document.getElementById('cors-proxy').value = localStorage.getItem('cors_proxy') || 'direct';
       document.getElementById('api-key').value = localStorage.getItem('lufop_key') || '';
-      document.getElementById('radar-count').value = localStorage.getItem('radar_count') || '5000';
+      document.getElementById('radar-count').value = localStorage.getItem('radar_count') || '2500';
       document.getElementById('limit-france').checked = localStorage.getItem('limit_france') !== 'false';
       document.getElementById('use-radius').checked = localStorage.getItem('use_radius') === 'true';
       document.getElementById('radius-km').value = localStorage.getItem('radius_km') || '1000';
@@ -754,7 +754,9 @@
       if (!proxyFn) throw new Error('Proxy inconnu: ' + proxyName);
 
       const proxyUrl = proxyFn(url);
-      addLog('🔄 Tentative avec proxy: ' + proxyName, 'info');
+      const isDirect = proxyName === 'direct';
+
+      addLog('🔄 Tentative ' + (isDirect ? 'DIRECTE (sans proxy)' : 'avec proxy: ' + proxyName), isDirect ? 'warning' : 'info');
       addLog('URL: ' + proxyUrl.substring(0, 150) + '...', 'info');
 
       const controller = new AbortController();
@@ -764,15 +766,16 @@
         const startTime = Date.now();
         const r = await fetch(proxyUrl, { 
           signal: controller.signal,
+          mode: isDirect ? 'cors' : 'cors',
           headers: {
             'Accept': 'application/json',
-            'User-Agent': 'RadarAlertPro/2.3'
+            'User-Agent': 'RadarAlertPro/2.4'
           }
         });
         clearTimeout(timeoutId);
 
         const elapsed = Date.now() - startTime;
-        addLog('✅ Réponse reçue en ' + elapsed + 'ms via ' + proxyName, 'success');
+        addLog('✅ Réponse reçue en ' + elapsed + 'ms' + (isDirect ? ' (DIRECT)' : ' via ' + proxyName), 'success');
         addLog('Status: ' + r.status + ' ' + r.statusText, r.ok ? 'success' : 'error');
 
         if (!r.ok) {
@@ -786,23 +789,23 @@
       } catch(e) {
         clearTimeout(timeoutId);
         if (e.name === 'AbortError') {
-          addLog('⏱️ TIMEOUT après ' + (timeout/1000) + 's avec ' + proxyName, 'error');
+          addLog('⏱️ TIMEOUT après ' + (timeout/1000) + 's', 'error');
           throw new Error('TIMEOUT');
         }
-        addLog('❌ Échec ' + proxyName + ': ' + e.message, 'error');
+        addLog('❌ Échec: ' + e.message, 'error');
         throw e;
       }
     }
 
     async function fetchWithFallback(url) {
-      const preferredProxy = localStorage.getItem('cors_proxy') || 'thingproxy';
+      const preferredProxy = localStorage.getItem('cors_proxy') || 'direct';
       const proxyList = Object.keys(PROXIES);
 
       // Mettre le proxy préféré en premier
       const orderedProxies = [preferredProxy, ...proxyList.filter(p => p !== preferredProxy)];
 
       addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
-      addLog('🌐 Fallback automatique activé - 6 proxies', 'warning');
+      addLog('🌐 Fallback automatique activé - 3 tentatives', 'warning');
       addLog('Ordre: ' + orderedProxies.join(' → '), 'info');
 
       for (let i = 0; i < orderedProxies.length; i++) {
@@ -811,17 +814,17 @@
 
         try {
           const response = await fetchWithProxy(url, proxyName);
-          addLog('🎉 SUCCÈS avec ' + proxyName + '!', 'success');
+          addLog('🎉 SUCCÈS avec ' + (proxyName === 'direct' ? 'connexion DIRECTE' : proxyName) + '!', 'success');
           return response;
         } catch(e) {
           addLog('💥 Échec ' + proxyName + ': ' + e.message, 'error');
 
           if (i < orderedProxies.length - 1) {
-            addLog('⏭️ Passage au proxy suivant...', 'warning');
+            addLog('⏭️ Passage à la tentative suivante...', 'warning');
           } else {
             addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'error');
-            addLog('💀 TOUS LES 6 PROXIES ONT ÉCHOUÉ', 'error');
-            throw new Error('Tous les 6 proxies ont échoué');
+            addLog('💀 TOUTES LES TENTATIVES ONT ÉCHOUÉ', 'error');
+            throw new Error('Toutes les tentatives ont échoué');
           }
         }
       }
@@ -846,7 +849,7 @@
 
       addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
       addLog('💾 Sauvegarde paramètres', 'info');
-      addLog('API: ' + apiSource + ', Proxy: ' + proxy, 'info');
+      addLog('API: ' + apiSource + ', Mode: ' + (proxy === 'direct' ? 'DIRECT (sans proxy)' : 'Proxy ' + proxy), 'info');
       addLog('Radars max: ' + nbr + ', France: ' + fr, 'info');
 
       localStorage.setItem('api_source', apiSource);
@@ -867,7 +870,7 @@
 
     async function loadLufop() {
       const key = localStorage.getItem('lufop_key');
-      const nbr = localStorage.getItem('radar_count') || '5000';
+      const nbr = localStorage.getItem('radar_count') || '2500';
       const fr = localStorage.getItem('limit_france') !== 'false';
       const useR = localStorage.getItem('use_radius') === 'true';
       const km = localStorage.getItem('radius_km') || '1000';
@@ -901,12 +904,15 @@
         const r = await fetchWithFallback(url);
 
         const elapsed = Date.now() - startTime;
+        addLog('⏱️ Temps total: ' + elapsed + 'ms', 'info');
 
+        addLog('📥 Lecture du body...', 'info');
         const text = await r.text();
-        addLog('Taille réponse: ' + Math.round(text.length / 1024) + ' Ko', 'info');
+        addLog('✅ Body lu: ' + Math.round(text.length / 1024) + ' Ko', 'success');
 
+        addLog('🔍 Parsing JSON...', 'info');
         const data = JSON.parse(text);
-        addLog('JSON parsé: ' + data.length + ' radars', 'success');
+        addLog('✅ JSON parsé: ' + data.length + ' radars', 'success');
 
         radars = data.map(x => ({
           lat: parseFloat(x.lat || x.latitude), 
@@ -971,7 +977,7 @@
         const data = await r.json();
         const pois = data.pois ? Object.values(data.pois) : (Array.isArray(data) ? data : []);
 
-        radars = pois.slice(0, parseInt(localStorage.getItem('radar_count') || '5000')).map(x => ({
+        radars = pois.slice(0, parseInt(localStorage.getItem('radar_count') || '2500')).map(x => ({
           lat: parseFloat(x.lat || x.latitude || 0),
           lon: parseFloat(x.lng || x.lon || x.longitude || 0),
           speed: parseInt(x.speed || x.vmax || 50),
@@ -1138,7 +1144,7 @@
 
     window.onload = () => {
       addLog('🚀 Radar Alert Pro démarré', 'success');
-      addLog('Version: 2.3 - 6 proxies (4 nouveaux + 2 anciens)', 'info');
+      addLog('Version: 2.4 - Mode DIRECT + Fallback + Taille réduite', 'info');
 
       const cached = localStorage.getItem('radars_cache');
       if (cached) {
