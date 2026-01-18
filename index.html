@@ -192,7 +192,6 @@
       flex-direction: column;
     }
 
-    /* Système d'onglets */
     #tab-container {
       display: flex;
       border-bottom: 2px solid #0ff;
@@ -448,11 +447,19 @@
       <h4>🔑 Clé API (Lufop uniquement)</h4>
       <input type="text" id="api-key" placeholder="Clé API Lufop (32 caractères)">
 
-      <h4>🌐 Méthode d'accès</h4>
-      <select id="access-method">
-        <option value="proxy" selected>Via Proxy (recommandé)</option>
-        <option value="direct">Accès direct</option>
+      <h4>🌐 Proxy CORS (avec fallback automatique)</h4>
+      <select id="cors-proxy">
+        <option value="allorigins" selected>AllOrigins (recommandé)</option>
+        <option value="corsproxy">CorsProxy.io</option>
+        <option value="codetabs">CodeTabs Proxy</option>
+        <option value="corsh">CORS.SH</option>
       </select>
+
+      <div class="info-box warning">
+        ⚙️ <b>Fallback automatique :</b><br>
+        Si le proxy choisi échoue, l'app essaiera automatiquement les 3 autres dans l'ordre.<br>
+        Timeout : 120 secondes par tentative.
+      </div>
 
       <h4>🌍 Zone géographique</h4>
 
@@ -547,6 +554,14 @@
     let gpsRefreshRate = 0;
     let currentTab = 'settings';
 
+    // Configuration des proxies CORS
+    const PROXIES = {
+      allorigins: (url) => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url),
+      corsproxy: (url) => 'https://corsproxy.io/?' + encodeURIComponent(url),
+      codetabs: (url) => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(url),
+      corsh: (url) => 'https://cors.sh/' + url
+    };
+
     function switchTab(tabName) {
       currentTab = tabName;
 
@@ -620,7 +635,7 @@
       document.getElementById('settings-modal').style.display = 'flex';
 
       document.getElementById('api-source').value = localStorage.getItem('api_source') || 'lufop';
-      document.getElementById('access-method').value = localStorage.getItem('access_method') || 'proxy';
+      document.getElementById('cors-proxy').value = localStorage.getItem('cors_proxy') || 'allorigins';
       document.getElementById('api-key').value = localStorage.getItem('lufop_key') || '';
       document.getElementById('radar-count').value = localStorage.getItem('radar_count') || '5000';
       document.getElementById('limit-france').checked = localStorage.getItem('limit_france') !== 'false';
@@ -729,9 +744,87 @@
       return true;
     }
 
+    async function fetchWithProxy(url, proxyName, timeout = 120000) {
+      const proxyFn = PROXIES[proxyName];
+      if (!proxyFn) throw new Error('Proxy inconnu: ' + proxyName);
+
+      const proxyUrl = proxyFn(url);
+      addLog('🔄 Tentative avec proxy: ' + proxyName, 'info');
+      addLog('URL: ' + proxyUrl.substring(0, 150) + '...', 'info');
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+      try {
+        const startTime = Date.now();
+        const r = await fetch(proxyUrl, { 
+          signal: controller.signal,
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'RadarAlertPro/2.2'
+          }
+        });
+        clearTimeout(timeoutId);
+
+        const elapsed = Date.now() - startTime;
+        addLog('✅ Réponse reçue en ' + elapsed + 'ms via ' + proxyName, 'success');
+        addLog('Status: ' + r.status + ' ' + r.statusText, r.ok ? 'success' : 'error');
+
+        if (!r.ok) {
+          const errorBody = await r.text();
+          addLog('Body erreur: ' + errorBody.substring(0, 300), 'error');
+          throw new Error('HTTP ' + r.status + ' ' + r.statusText);
+        }
+
+        return r;
+
+      } catch(e) {
+        clearTimeout(timeoutId);
+        if (e.name === 'AbortError') {
+          addLog('⏱️ TIMEOUT après ' + (timeout/1000) + 's avec ' + proxyName, 'error');
+          throw new Error('TIMEOUT');
+        }
+        addLog('❌ Échec ' + proxyName + ': ' + e.message, 'error');
+        throw e;
+      }
+    }
+
+    async function fetchWithFallback(url) {
+      const preferredProxy = localStorage.getItem('cors_proxy') || 'allorigins';
+      const proxyList = Object.keys(PROXIES);
+
+      // Mettre le proxy préféré en premier
+      const orderedProxies = [preferredProxy, ...proxyList.filter(p => p !== preferredProxy)];
+
+      addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
+      addLog('🌐 Fallback automatique activé', 'warning');
+      addLog('Ordre: ' + orderedProxies.join(' → '), 'info');
+
+      for (let i = 0; i < orderedProxies.length; i++) {
+        const proxyName = orderedProxies[i];
+        addLog('📡 Tentative ' + (i+1) + '/' + orderedProxies.length + ': ' + proxyName, 'warning');
+
+        try {
+          const response = await fetchWithProxy(url, proxyName);
+          addLog('🎉 SUCCÈS avec ' + proxyName + '!', 'success');
+          return response;
+        } catch(e) {
+          addLog('💥 Échec ' + proxyName + ': ' + e.message, 'error');
+
+          if (i < orderedProxies.length - 1) {
+            addLog('⏭️ Passage au proxy suivant...', 'warning');
+          } else {
+            addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'error');
+            addLog('💀 TOUS LES PROXIES ONT ÉCHOUÉ', 'error');
+            throw new Error('Tous les proxies ont échoué');
+          }
+        }
+      }
+    }
+
     async function saveSettings() {
       const apiSource = document.getElementById('api-source').value;
-      const method = document.getElementById('access-method').value;
+      const proxy = document.getElementById('cors-proxy').value;
       const key = document.getElementById('api-key').value.trim();
       const nbr = document.getElementById('radar-count').value;
       const fr = document.getElementById('limit-france').checked;
@@ -748,11 +841,11 @@
 
       addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
       addLog('💾 Sauvegarde paramètres', 'info');
-      addLog('API: ' + apiSource + ', Méthode: ' + method, 'info');
-      addLog('Radars max: ' + nbr + ', France: ' + fr + ', Rayon: ' + (useR ? km + 'km' : 'Non'), 'info');
+      addLog('API: ' + apiSource + ', Proxy: ' + proxy, 'info');
+      addLog('Radars max: ' + nbr + ', France: ' + fr, 'info');
 
       localStorage.setItem('api_source', apiSource);
-      localStorage.setItem('access_method', method);
+      localStorage.setItem('cors_proxy', proxy);
       localStorage.setItem('lufop_key', key);
       localStorage.setItem('radar_count', nbr);
       localStorage.setItem('limit_france', fr);
@@ -773,7 +866,6 @@
       const fr = localStorage.getItem('limit_france') !== 'false';
       const useR = localStorage.getItem('use_radius') === 'true';
       const km = localStorage.getItem('radius_km') || '1000';
-      const method = localStorage.getItem('access_method') || 'proxy';
 
       let url = 'https://api.lufop.net/api?key=' + key + '&format=json&nbr=' + nbr;
 
@@ -784,7 +876,6 @@
           return; 
         }
         url += '&pays=fr&q=' + currentPos.latitude + ',' + currentPos.longitude + '&m=' + km;
-        addLog('Mode: France + Rayon ' + km + 'km', 'info');
       } else if (useR) {
         if (!currentPos) { 
           addLog('Position GPS requise pour mode rayon', 'error');
@@ -792,76 +883,41 @@
           return; 
         }
         url += '&q=' + currentPos.latitude + ',' + currentPos.longitude + '&m=' + km;
-        addLog('Mode: Rayon ' + km + 'km (monde)', 'info');
       } else if (fr) {
         url += '&pays=fr';
-        addLog('Mode: France uniquement', 'info');
       }
 
-      const finalUrl = method === 'proxy' ? 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url) : url;
-      addLog('URL finale: ' + (method === 'proxy' ? '[PROXY] ' : '[DIRECT] ') + url, 'info');
+      addLog('URL API: ' + url, 'info');
 
       try {
-        addLog('📡 Envoi requête Lufop... (timeout 60s)', 'info');
+        addLog('📡 Démarrage chargement Lufop (timeout 120s)...', 'info');
         const startTime = Date.now();
 
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 60000);
-
-        const r = await fetch(finalUrl, { 
-          signal: controller.signal,
-          headers: {
-            'Accept': 'application/json',
-            'User-Agent': 'RadarAlertPro/2.0'
-          }
-        });
-        clearTimeout(timeoutId);
+        const r = await fetchWithFallback(url);
 
         const elapsed = Date.now() - startTime;
 
-        addLog('✅ Réponse HTTP reçue en ' + elapsed + 'ms', 'success');
-        addLog('Status: ' + r.status + ' ' + r.statusText, r.ok ? 'success' : 'error');
-        addLog('Headers: ' + r.headers.get('content-type'), 'info');
-
-        if (!r.ok) {
-          const errorBody = await r.text();
-          addLog('Body erreur: ' + errorBody.substring(0, 500), 'error');
-          throw new Error('HTTP ' + r.status + ' ' + r.statusText + ' - ' + errorBody.substring(0, 100));
-        }
-
         const text = await r.text();
-        addLog('Taille réponse: ' + Math.round(text.length / 1024) + ' Ko (' + text.length + ' octets)', 'info');
-
-        if (text.length < 10) {
-          addLog('Réponse trop courte: "' + text + '"', 'error');
-          throw new Error('Réponse vide ou invalide');
-        }
+        addLog('Taille réponse: ' + Math.round(text.length / 1024) + ' Ko', 'info');
 
         const data = JSON.parse(text);
-        addLog('JSON parsé avec succès: ' + (Array.isArray(data) ? data.length : 'NON-ARRAY') + ' éléments', 'success');
-
-        if (!Array.isArray(data)) {
-          addLog('Type reçu: ' + typeof data + ' - ' + JSON.stringify(data).substring(0, 200), 'error');
-          throw new Error('Format JSON invalide (pas un tableau)');
-        }
+        addLog('JSON parsé: ' + data.length + ' radars', 'success');
 
         radars = data.map(x => ({
-          lat: parseFloat(x.latitude), 
-          lon: parseFloat(x.longitude),
-          speed: parseInt(x.vitesse || 50), 
+          lat: parseFloat(x.lat || x.latitude), 
+          lon: parseFloat(x.lng || x.lon || x.longitude),
+          speed: parseInt(x.vitesse || x.speed || 50), 
           flash: x.flash || 'D',
-          position: x.position || 'C', 
+          position: x.position || x.emplacement || 'C', 
           azimut: parseFloat(x.azimut || 0)
         }));
-
-        addLog('Mapping radars: ' + radars.length + ' radars transformés', 'success');
 
         localStorage.setItem('radars_cache', JSON.stringify(radars));
         localStorage.setItem('radars_date', new Date().toISOString());
         updateStatusButton();
 
         addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'success');
-        addLog('🎉 SUCCÈS TOTAL! ' + radars.length + ' radars chargés en ' + elapsed + 'ms', 'success');
+        addLog('🎉 SUCCÈS TOTAL! ' + radars.length + ' radars en ' + elapsed + 'ms', 'success');
         addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'success');
 
         alert('✅ ' + radars.length + ' radars chargés');
@@ -869,21 +925,8 @@
       } catch(e) {
         let errorMsg = e.message || e.toString();
 
-        if (e.name === 'AbortError') {
-          errorMsg = 'TIMEOUT après 60 secondes';
-          addLog('⏱️ TIMEOUT: La requête a dépassé 60 secondes', 'error');
-        } else if (errorMsg.includes('NetworkError') || errorMsg.includes('Failed to fetch')) {
-          errorMsg = 'ERREUR RÉSEAU - Vérifiez connexion Internet';
-          addLog('🌐 Erreur réseau détectée', 'error');
-        } else if (errorMsg.includes('JSON')) {
-          errorMsg = 'ERREUR PARSING JSON - Réponse corrompue';
-          addLog('📄 Erreur parsing JSON', 'error');
-        }
-
         addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'error');
-        addLog('💥 ÉCHEC COMPLET: ' + errorMsg, 'error');
-        addLog('Type erreur: ' + e.name, 'error');
-        addLog('Stack: ' + (e.stack ? e.stack.substring(0, 300) : 'N/A'), 'error');
+        addLog('💥 ÉCHEC TOTAL: ' + errorMsg, 'error');
         addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'error');
 
         alert('❌ ' + errorMsg);
@@ -901,7 +944,6 @@
 
       const km = parseFloat(localStorage.getItem('radius_km') || '1000');
       const zoom = parseInt(localStorage.getItem('zoom_level') || '8');
-      const method = localStorage.getItem('access_method') || 'proxy';
 
       const deg = km / 111;
       const lat = currentPos.latitude, lon = currentPos.longitude;
@@ -911,37 +953,18 @@
       const lonMax = Math.min(180, lon + deg);
       const box = latMin + ',' + lonMin + ',' + latMax + ',' + lonMax;
 
-      addLog('Blitzer: rayon ' + km + 'km, zoom ' + zoom, 'warning');
-      addLog('Box géographique: ' + box, 'info');
-
       const url = 'https://cdn2.atudo.net/api/4.0/pois.php?z=' + zoom + '&type=0,1,2,3,4,5,6,101,102,103&box=' + box;
-      const finalUrl = method === 'proxy' ? 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url) : url;
 
       try {
-        addLog('📡 Envoi requête Blitzer... (timeout 60s)', 'info');
+        addLog('📡 Démarrage Blitzer (timeout 120s)...', 'info');
         const startTime = Date.now();
 
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 60000);
-
-        const r = await fetch(finalUrl, { signal: controller.signal });
-        clearTimeout(timeoutId);
+        const r = await fetchWithFallback(url);
 
         const elapsed = Date.now() - startTime;
 
-        addLog('✅ Réponse HTTP reçue en ' + elapsed + 'ms', 'success');
-        addLog('Status: ' + r.status + ' ' + r.statusText, r.ok ? 'success' : 'error');
-
-        if (!r.ok) {
-          const errorBody = await r.text();
-          addLog('Body erreur: ' + errorBody.substring(0, 500), 'error');
-          throw new Error('HTTP ' + r.status + ' ' + r.statusText);
-        }
-
         const data = await r.json();
         const pois = data.pois ? Object.values(data.pois) : (Array.isArray(data) ? data : []);
-
-        addLog('POIs trouvés: ' + pois.length, 'success');
 
         radars = pois.slice(0, parseInt(localStorage.getItem('radar_count') || '5000')).map(x => ({
           lat: parseFloat(x.lat || x.latitude || 0),
@@ -963,13 +986,8 @@
       } catch(e) {
         let errorMsg = e.message || e.toString();
 
-        if (e.name === 'AbortError') {
-          errorMsg = 'TIMEOUT après 60 secondes';
-        }
-
         addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'error');
         addLog('💥 ÉCHEC Blitzer: ' + errorMsg, 'error');
-        addLog('Type erreur: ' + e.name, 'error');
         addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'error');
 
         alert('❌ ' + errorMsg);
@@ -1115,7 +1133,7 @@
 
     window.onload = () => {
       addLog('🚀 Radar Alert Pro démarré', 'success');
-      addLog('Version: 2.1 - Logs détaillés + Timeout 60s', 'info');
+      addLog('Version: 2.2 - Multi-proxy fallback + Timeout 120s', 'info');
 
       const cached = localStorage.getItem('radars_cache');
       if (cached) {
