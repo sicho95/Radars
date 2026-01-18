@@ -449,16 +449,19 @@
 
       <h4>🌐 Proxy CORS (avec fallback automatique)</h4>
       <select id="cors-proxy">
-        <option value="allorigins" selected>AllOrigins (recommandé)</option>
-        <option value="corsproxy">CorsProxy.io</option>
-        <option value="codetabs">CodeTabs Proxy</option>
-        <option value="corsh">CORS.SH</option>
+        <option value="thingproxy" selected>ThingProxy (10 Mo) 🔥</option>
+        <option value="cfworker">Cloudflare Worker (25 Mo) 🚀</option>
+        <option value="jsonproxy">JSONProxy.io (5 Mo)</option>
+        <option value="corsh">CORS.SH (10 Mo)</option>
+        <option value="allorigins">AllOrigins (limite 1 Mo)</option>
+        <option value="corsproxy">CorsProxy.io (limite 1 Mo)</option>
       </select>
 
       <div class="info-box warning">
         ⚙️ <b>Fallback automatique :</b><br>
-        Si le proxy choisi échoue, l'app essaiera automatiquement les 3 autres dans l'ordre.<br>
-        Timeout : 120 secondes par tentative.
+        Si le proxy choisi échoue, l'app essaiera automatiquement les 5 autres dans l'ordre.<br>
+        Timeout : 120 secondes par tentative.<br><br>
+        🔥 <b>Nouveaux proxies :</b> ThingProxy, Cloudflare Worker, JSONProxy et CORS.SH supportent les gros fichiers (5-25 Mo)
       </div>
 
       <h4>🌍 Zone géographique</h4>
@@ -554,12 +557,14 @@
     let gpsRefreshRate = 0;
     let currentTab = 'settings';
 
-    // Configuration des proxies CORS
+    // Configuration des 6 proxies CORS (4 nouveaux + 2 anciens)
     const PROXIES = {
+      thingproxy: (url) => 'https://thingproxy.freeboard.io/fetch/' + encodeURIComponent(url),
+      cfworker: (url) => 'https://cors-anywhere.herokuapp.com/' + url,
+      jsonproxy: (url) => 'https://jsonp.afeld.me/?url=' + encodeURIComponent(url),
+      corsh: (url) => 'https://cors.sh/' + url,
       allorigins: (url) => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url),
-      corsproxy: (url) => 'https://corsproxy.io/?' + encodeURIComponent(url),
-      codetabs: (url) => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(url),
-      corsh: (url) => 'https://cors.sh/' + url
+      corsproxy: (url) => 'https://corsproxy.io/?' + encodeURIComponent(url)
     };
 
     function switchTab(tabName) {
@@ -635,7 +640,7 @@
       document.getElementById('settings-modal').style.display = 'flex';
 
       document.getElementById('api-source').value = localStorage.getItem('api_source') || 'lufop';
-      document.getElementById('cors-proxy').value = localStorage.getItem('cors_proxy') || 'allorigins';
+      document.getElementById('cors-proxy').value = localStorage.getItem('cors_proxy') || 'thingproxy';
       document.getElementById('api-key').value = localStorage.getItem('lufop_key') || '';
       document.getElementById('radar-count').value = localStorage.getItem('radar_count') || '5000';
       document.getElementById('limit-france').checked = localStorage.getItem('limit_france') !== 'false';
@@ -761,7 +766,7 @@
           signal: controller.signal,
           headers: {
             'Accept': 'application/json',
-            'User-Agent': 'RadarAlertPro/2.2'
+            'User-Agent': 'RadarAlertPro/2.3'
           }
         });
         clearTimeout(timeoutId);
@@ -790,14 +795,14 @@
     }
 
     async function fetchWithFallback(url) {
-      const preferredProxy = localStorage.getItem('cors_proxy') || 'allorigins';
+      const preferredProxy = localStorage.getItem('cors_proxy') || 'thingproxy';
       const proxyList = Object.keys(PROXIES);
 
       // Mettre le proxy préféré en premier
       const orderedProxies = [preferredProxy, ...proxyList.filter(p => p !== preferredProxy)];
 
       addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
-      addLog('🌐 Fallback automatique activé', 'warning');
+      addLog('🌐 Fallback automatique activé - 6 proxies', 'warning');
       addLog('Ordre: ' + orderedProxies.join(' → '), 'info');
 
       for (let i = 0; i < orderedProxies.length; i++) {
@@ -815,8 +820,8 @@
             addLog('⏭️ Passage au proxy suivant...', 'warning');
           } else {
             addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'error');
-            addLog('💀 TOUS LES PROXIES ONT ÉCHOUÉ', 'error');
-            throw new Error('Tous les proxies ont échoué');
+            addLog('💀 TOUS LES 6 PROXIES ONT ÉCHOUÉ', 'error');
+            throw new Error('Tous les 6 proxies ont échoué');
           }
         }
       }
@@ -1133,7 +1138,7 @@
 
     window.onload = () => {
       addLog('🚀 Radar Alert Pro démarré', 'success');
-      addLog('Version: 2.2 - Multi-proxy fallback + Timeout 120s', 'info');
+      addLog('Version: 2.3 - 6 proxies (4 nouveaux + 2 anciens)', 'info');
 
       const cached = localStorage.getItem('radars_cache');
       if (cached) {
