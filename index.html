@@ -1,7 +1,9 @@
-<!DOCTYPE html><html lang="fr"><head>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <title>Testeur Radar France</title>
+  <title>Radar Alert - Corrigé</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { 
@@ -10,6 +12,7 @@
       font-family: Arial, sans-serif; 
       overflow: hidden;
       height: 100vh;
+      transition: background 0.3s;
     }
 
     #top-controls {
@@ -27,6 +30,7 @@
       border-radius: 8px;
       cursor: pointer;
       font-size: 14px;
+      font-weight: bold;
     }
     .status-green { background: #0a0; color: #fff; }
     .status-orange { background: #f80; color: #000; }
@@ -46,10 +50,7 @@
       align-items: center;
       justify-content: center;
     }
-    #settings-btn:active {
-      background: #0ff;
-      color: #000;
-    }
+    #settings-btn:active { background: #0ff; color: #000; }
 
     #speed-display {
       text-align: center;
@@ -62,25 +63,32 @@
 
     #radar-panel {
       position: fixed;
-      bottom: 80px;
+      bottom: 140px;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(0,0,0,0.9);
-      border: 3px solid #fff;
-      border-radius: 15px;
-      padding: 20px;
-      min-width: 300px;
+      background: rgba(0,0,0,0.95);
+      border: 4px solid #fff;
+      border-radius: 20px;
+      padding: 25px 30px;
+      min-width: 320px;
       text-align: center;
       display: none;
+      box-shadow: 0 0 30px rgba(255,255,255,0.5);
     }
     #radar-limit {
-      font-size: 60px;
+      font-size: 70px;
       font-weight: bold;
       color: #f00;
+      text-shadow: 0 0 10px #f00;
     }
     #radar-distance {
-      font-size: 24px;
+      font-size: 28px;
       margin-top: 10px;
+      font-weight: bold;
+    }
+    #radar-distance.passed {
+      color: #888;
+      font-style: italic;
     }
 
     #gauge-container {
@@ -88,17 +96,39 @@
       bottom: 10px;
       left: 10px;
       right: 10px;
-      height: 40px;
+      height: 60px;
       background: #222;
-      border: 2px solid #fff;
-      border-radius: 5px;
-      overflow: hidden;
+      border: 3px solid #fff;
+      border-radius: 8px;
+      overflow: visible;
+      position: relative;
     }
     #gauge-fill {
       height: 100%;
       background: linear-gradient(90deg, #0f0, #ff0, #f00);
       width: 0%;
       transition: width 0.3s;
+      border-radius: 5px;
+    }
+
+    /* Marqueur du radar sur la barre */
+    #radar-marker {
+      position: absolute;
+      top: -5px;
+      bottom: -5px;
+      width: 4px;
+      background: #fff;
+      box-shadow: 0 0 10px #fff;
+      display: none;
+      z-index: 10;
+    }
+    #radar-marker::before {
+      content: '📷';
+      position: absolute;
+      top: -25px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 20px;
     }
 
     .bg-green { background: #0a0 !important; }
@@ -107,252 +137,176 @@
 
     #modal-overlay {
       position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0,0,0,0.8);
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.9);
       z-index: 1999;
       display: none;
     }
 
     #settings-modal {
       position: fixed;
-      top: 5%;
-      left: 5%;
-      right: 5%;
-      bottom: 5%;
+      top: 5%; left: 5%; right: 5%; bottom: 5%;
       background: #111;
       border: 3px solid #0ff;
-      padding: 15px;
-      border-radius: 10px;
+      padding: 20px;
+      border-radius: 15px;
       z-index: 2000;
       display: none;
       overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
     }
+
     #settings-modal h3 {
-      margin-bottom: 15px;
       color: #0ff;
-      font-size: 20px;
+      font-size: 24px;
+      margin-bottom: 20px;
       border-bottom: 2px solid #0ff;
       padding-bottom: 10px;
     }
+
     #settings-modal h4 {
-      margin: 15px 0 8px 0;
       color: #ff0;
-      font-size: 16px;
+      font-size: 18px;
+      margin: 20px 0 10px 0;
     }
+
     #settings-modal label {
       display: block;
       color: #aaa;
-      font-size: 13px;
+      font-size: 14px;
       margin-bottom: 5px;
     }
-    #settings-modal input[type="text"],
-    #settings-modal input[type="number"] {
+
+    #settings-modal input[type="text"] {
       width: 100%;
-      padding: 12px;
+      padding: 15px;
       margin-bottom: 10px;
       background: #222;
       border: 2px solid #fff;
       color: #fff;
       font-size: 16px;
-      border-radius: 5px;
+      border-radius: 8px;
     }
-    #settings-modal select {
-      width: 100%;
-      padding: 12px;
-      margin-bottom: 10px;
-      background: #222;
-      border: 2px solid #fff;
-      color: #fff;
-      font-size: 16px;
-      border-radius: 5px;
-    }
+
     #settings-modal button {
       width: 100%;
-      padding: 14px;
+      padding: 15px;
       border: none;
       color: #fff;
-      font-size: 16px;
+      font-size: 18px;
       cursor: pointer;
-      border-radius: 5px;
-      margin: 5px 0;
+      border-radius: 8px;
+      margin: 10px 0;
       font-weight: bold;
     }
 
-    .checkbox-container {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 12px;
-      background: #222;
-      border: 2px solid #fff;
-      border-radius: 5px;
-      margin-bottom: 10px;
-      cursor: pointer;
-    }
-    .checkbox-container input[type="checkbox"] {
-      width: 20px;
-      height: 20px;
-      cursor: pointer;
-    }
-    .checkbox-container label {
-      margin: 0;
-      cursor: pointer;
-      font-size: 14px;
-      color: #fff;
-    }
-
-    .radius-group {
-      margin-left: 20px;
-      padding: 10px;
-      background: #1a1a1a;
-      border-left: 3px solid #0ff;
-      border-radius: 5px;
-      margin-bottom: 10px;
-    }
-    .radius-group.disabled {
-      opacity: 0.5;
-      pointer-events: none;
-    }
-
-    #btn-validate {
-      background: #0a0;
-    }
-    #btn-clear-key {
-      background: #f80;
-    }
-    #btn-close {
-      background: #666;
-    }
+    #btn-load { background: #0a0; }
+    #btn-clear { background: #f80; }
+    #btn-close { background: #666; }
 
     .info-box {
       background: #222;
       border-left: 4px solid #0ff;
-      padding: 10px;
-      margin: 10px 0;
-      font-size: 13px;
-      line-height: 1.5;
-    }
-    .info-box.warning {
-      border-left-color: #ff0;
-    }
-    .info-box.success {
-      border-left-color: #0f0;
-    }
-
-    #debug-section {
-      margin-top: 20px;
-      border-top: 2px solid #0ff;
-      padding-top: 15px;
-    }
-    #debug-section h4 {
-      color: #0ff;
-      margin-bottom: 10px;
-      font-size: 16px;
-    }
-    #debug-log {
-      background: #000;
-      border: 2px solid #0f0;
+      padding: 15px;
+      margin: 15px 0;
+      font-size: 14px;
+      line-height: 1.6;
       border-radius: 5px;
+    }
+    .info-box.success { border-left-color: #0f0; }
+    .info-box.warning { border-left-color: #ff0; }
+
+    #debug-info {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      background: rgba(0,0,0,0.8);
       padding: 10px;
-      min-height: 200px;
-      max-height: 300px;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
+      border: 2px solid #0ff;
+      border-radius: 5px;
       font-family: monospace;
       font-size: 12px;
-      text-align: left;
-      line-height: 1.5;
+      display: none;
+      max-width: 300px;
     }
-    .log-entry {
-      margin: 3px 0;
-      padding: 3px 0;
-      border-bottom: 1px solid #222;
+
+    #debug-toggle {
+      position: fixed;
+      bottom: 80px;
+      left: 10px;
+      width: 40px;
+      height: 40px;
+      background: #222;
+      border: 2px solid #0ff;
+      border-radius: 50%;
+      color: #0ff;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
     }
-    .log-info { color: #0ff; }
-    .log-success { color: #0f0; }
-    .log-warning { color: #ff0; }
-    .log-error { color: #f00; }
-    .log-time { color: #888; font-size: 10px; margin-right: 5px; }
   </style>
 </head>
-<body class="">
+<body>
 
   <div id="modal-overlay"></div>
 
   <div id="settings-modal">
-    <h3>⚙️ Paramètres</h3>
-
-    <h4>🔑 Clé API Lufop</h4>
-    <label>Obtiens ta clé gratuite sur <a href="https://api.lufop.net" target="_blank" style="color:#0ff">api.lufop.net</a></label>
-    <input type="text" id="api-key-input" placeholder="Colle ta clé API ici (32 caractères)">
-
-    <h4>🌍 Zone géographique (options cumulables)</h4>
-
-    <div class="checkbox-container" onclick="document.getElementById('limit-france').click()">
-      <input type="checkbox" id="limit-france" checked onclick="event.stopPropagation()">
-      <label for="limit-france">Limiter à la France uniquement</label>
-    </div>
-
-    <div class="checkbox-container" onclick="document.getElementById('use-radius').click()">
-      <input type="checkbox" id="use-radius" onclick="event.stopPropagation(); toggleRadius()">
-      <label for="use-radius">Limiter par rayon autour de ma position</label>
-    </div>
-
-    <div class="radius-group disabled" id="radius-group">
-      <label>Rayon en kilomètres (10 à 5000)</label>
-      <input type="number" id="radius-km" placeholder="1000" min="10" max="5000" value="1000">
-    </div>
+    <h3>⚙️ Configuration Radar Alert</h3>
 
     <div class="info-box success">
-      💡 <b>Exemples d'utilisation :</b><br>
-      • <b>France uniquement</b> (☑️France, ☐Rayon) → Tous les radars français (4716)<br>
-      • <b>Europe complète</b> (☐France, ☑️Rayon 1000km) → FR+IT+ES+BE+CH+DE...<br>
-      • <b>Frontalier</b> (☑️France, ☑️Rayon 100km) → Radars FR dans 100km autour de toi<br>
-      • <b>Monde entier</b> (☐France, ☐Rayon) → Tous pays limité par nbr max
+      ✅ <b>Algorithme corrigé :</b><br>
+      • Détection améliorée des radars par derrière<br>
+      • Zones d'alerte variables selon vitesse<br>
+      • Marqueur de position du radar sur la barre
     </div>
 
-    <h4>📊 Nombre maximum de radars</h4>
-    <select id="radar-count">
-      <option value="500">500 radars</option>
-      <option value="1000">1000 radars</option>
-      <option value="2000" selected>2000 radars (recommandé)</option>
-      <option value="5000">5000 radars</option>
-      <option value="10000">10000 radars (lent)</option>
-      <option value="21000">21000 radars (très lent)</option>
-    </select>
+    <h4>🔑 Clé API Lufop</h4>
+    <label>Obtiens ta clé sur <a href="https://api.lufop.net" target="_blank" style="color:#0ff">api.lufop.net</a></label>
+    <input type="text" id="api-key" placeholder="Clé API (32 caractères)">
 
-    <button id="btn-validate" onclick="saveSettings()">✓ VALIDER ET CHARGER</button>
-    <button id="btn-clear-key" onclick="clearApiKey()">🗑️ EFFACER LA CLÉ API</button>
+    <div class="info-box warning">
+      📍 <b>Zones d'alerte dynamiques :</b><br>
+      • ≥130 km/h : 2000m avant / 100m après<br>
+      • 110 km/h : 1500m avant / 80m après<br>
+      • 90 km/h : 1000m avant / 70m après<br>
+      • 70-89 km/h : 800m avant / 60m après<br>
+      • <70 km/h : 500m avant / 50m après
+    </div>
+
+    <button id="btn-load" onclick="loadRadars()">✓ CHARGER LES RADARS FRANCE</button>
+    <button id="btn-clear" onclick="clearData()">🗑️ EFFACER CACHE</button>
     <button id="btn-close" onclick="closeModal()">✕ FERMER</button>
-
-    <div id="debug-section">
-      <h4>📋 Journal de débogage</h4>
-      <div id="debug-log">
-        <div class="log-entry log-info"><span class="log-time">--:--:--</span> ℹ️ Modale de paramètres ouverte</div>
-      </div>
-    </div>
   </div>
 
   <div id="top-controls">
-    <div id="status-btn" class="status-red" onclick="updateRadars()">Pas de base</div>
-    <div id="settings-btn" onclick="openModal()" title="Paramètres">?</div>
+    <div id="status-btn" class="status-red" onclick="loadRadars()">Aucune donnée</div>
+    <div id="settings-btn" onclick="openModal()" title="Paramètres">⚙</div>
+  </div>
+
+  <div id="debug-toggle" onclick="toggleDebug()" title="Debug">🐛</div>
+
+  <div id="debug-info">
+    <div>Heading: <span id="dbg-heading">--</span>°</div>
+    <div>Lat: <span id="dbg-lat">--</span></div>
+    <div>Lon: <span id="dbg-lon">--</span></div>
+    <div>Radars: <span id="dbg-radars">0</span></div>
+    <div>Relevant: <span id="dbg-relevant">0</span></div>
   </div>
 
   <div id="speed-display">
     <span id="speed-value">0</span><span id="speed-unit">km/h</span>
   </div>
 
-  <div id="radar-panel" style="display: none;">
+  <div id="radar-panel">
     <div id="radar-limit">50</div>
-    <div id="radar-distance">Distance: 250m</div>
+    <div id="radar-distance">Dans 500m</div>
   </div>
 
   <div id="gauge-container">
-    <div id="gauge-fill" style="width: 0%;"></div>
+    <div id="radar-marker"></div>
+    <div id="gauge-fill"></div>
   </div>
 
   <script>
@@ -363,38 +317,27 @@
     let activeRadar = null;
     let lastBeepTime = 0;
     let audioContext = null;
+    let debugMode = false;
 
-    function toggleRadius() {
-      const checkbox = document.getElementById('use-radius');
-      const radiusGroup = document.getElementById('radius-group');
-
-      if (checkbox.checked) {
-        radiusGroup.classList.remove('disabled');
-        addLog('Mode rayon activé', 'info');
-      } else {
-        radiusGroup.classList.add('disabled');
-        addLog('Mode rayon désactivé', 'info');
-      }
+    function toggleDebug() {
+      debugMode = !debugMode;
+      document.getElementById('debug-info').style.display = debugMode ? 'block' : 'none';
     }
 
-    function addLog(msg, type = 'info') {
-      console.log(`[${type}]`, msg);
-      const log = document.getElementById('debug-log');
-      if (!log) return;
+    function updateDebug() {
+      if (!debugMode) return;
+      document.getElementById('dbg-heading').textContent = currentBearing.toFixed(0);
+      document.getElementById('dbg-lat').textContent = currentPos ? currentPos.latitude.toFixed(4) : '--';
+      document.getElementById('dbg-lon').textContent = currentPos ? currentPos.longitude.toFixed(4) : '--';
+      document.getElementById('dbg-radars').textContent = radars.length;
+    }
 
-      const time = new Date().toLocaleTimeString('fr-FR');
-      const logClass = `log-${type}`;
-      const icon = type === 'error' ? '❌' : type === 'success' ? '✅' : type === 'warning' ? '⚠️' : 'ℹ️';
-
-      const entry = document.createElement('div');
-      entry.className = `log-entry ${logClass}`;
-      entry.innerHTML = `<span class="log-time">${time}</span>${icon} ${msg}`;
-
-      log.insertBefore(entry, log.firstChild);
-
-      while (log.children.length > 50) {
-        log.removeChild(log.lastChild);
-      }
+    function getAlertZone(radarSpeed) {
+      if (radarSpeed >= 130) return { before: 2000, after: 100 };
+      if (radarSpeed >= 110) return { before: 1500, after: 80 };
+      if (radarSpeed >= 90) return { before: 1000, after: 70 };
+      if (radarSpeed >= 70) return { before: 800, after: 60 };
+      return { before: 500, after: 50 };
     }
 
     function closeModal() {
@@ -405,41 +348,16 @@
     function openModal() {
       document.getElementById('modal-overlay').style.display = 'block';
       document.getElementById('settings-modal').style.display = 'block';
-
-      const currentKey = localStorage.getItem('lufop_api_key');
-      if (currentKey) {
-        document.getElementById('api-key-input').value = currentKey;
-      }
-
-      const radarCount = localStorage.getItem('radar_count') || '2000';
-      document.getElementById('radar-count').value = radarCount;
-
-      const limitFrance = localStorage.getItem('limit_france') !== 'false';
-      document.getElementById('limit-france').checked = limitFrance;
-
-      const useRadius = localStorage.getItem('use_radius') === 'true';
-      document.getElementById('use-radius').checked = useRadius;
-
-      const radiusKm = localStorage.getItem('radius_km') || '1000';
-      document.getElementById('radius-km').value = radiusKm;
-
-      if (useRadius) {
-        document.getElementById('radius-group').classList.remove('disabled');
-      } else {
-        document.getElementById('radius-group').classList.add('disabled');
-      }
+      const key = localStorage.getItem('lufop_key');
+      if (key) document.getElementById('api-key').value = key;
     }
 
-    function clearApiKey() {
-      if (confirm('Effacer la clé API et le cache ?')) {
-        localStorage.removeItem('lufop_api_key');
-        localStorage.removeItem('radars_cache');
-        localStorage.removeItem('radars_date');
-        document.getElementById('api-key-input').value = '';
+    function clearData() {
+      if (confirm('Effacer toutes les données ?')) {
+        localStorage.clear();
         radars = [];
         updateStatusButton();
-        addLog('✅ Clé API et cache effacés', 'success');
-        alert('✅ Clé API et cache effacés');
+        alert('✅ Données effacées');
       }
     }
 
@@ -450,14 +368,14 @@
     function beep(freq = 1000, duration = 200) {
       try {
         initAudio();
-        const oscillator = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
-        oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
-        oscillator.frequency.value = freq;
-        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-        oscillator.start();
-        setTimeout(() => oscillator.stop(), duration);
+        const osc = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        osc.connect(gain);
+        gain.connect(audioContext.destination);
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.3, audioContext.currentTime);
+        osc.start();
+        setTimeout(() => osc.stop(), duration);
       } catch(e) {}
     }
 
@@ -470,8 +388,7 @@
       const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
                 Math.cos(φ1) * Math.cos(φ2) *
                 Math.sin(Δλ/2) * Math.sin(Δλ/2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-      return R * c;
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     }
 
     function bearing(lat1, lon1, lat2, lon2) {
@@ -479,141 +396,83 @@
       const φ2 = lat2 * Math.PI / 180;
       const Δλ = (lon2 - lon1) * Math.PI / 180;
       const y = Math.sin(Δλ) * Math.cos(φ2);
-      const x = Math.cos(φ1) * Math.sin(φ2) -
-                Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
+      const x = Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
       const θ = Math.atan2(y, x);
       return (θ * 180 / Math.PI + 360) % 360;
     }
 
+    // ALGORITHME CORRIGÉ DE DÉTECTION
     function isRelevantRadar(radar) {
-      if (!currentPos) return false;
-      const dist = haversine(currentPos.latitude, currentPos.longitude, 
-                             radar.lat, radar.lon);
-      if (dist > 1000) return false;
+      if (!currentPos || !currentBearing) return false;
 
-      const bear = bearing(currentPos.latitude, currentPos.longitude,
-                           radar.lat, radar.lon);
-      const azimut = parseFloat(radar.azimut || 0);
-      const diffAzimut = Math.min(Math.abs(bear - azimut), 
-                                   360 - Math.abs(bear - azimut));
+      const dist = haversine(currentPos.latitude, currentPos.longitude, radar.lat, radar.lon);
+      const zone = getAlertZone(radar.speed);
+      const maxDist = zone.before + zone.after;
 
-      if (diffAzimut > 45) return false;
-      if (radar.flash !== 'F' && radar.flash !== 'D') return false;
+      // Distance totale incluant avant et après
+      if (dist > maxDist) return false;
+
+      // Direction vers le radar depuis ma position
+      const bearingToRadar = bearing(currentPos.latitude, currentPos.longitude, radar.lat, radar.lon);
+
+      // Azimut du radar (direction qu'il surveille)
+      const radarAzimut = parseFloat(radar.azimut || 0);
+
+      // Mon heading (direction de déplacement)
+      const myHeading = currentBearing;
+
+      // Différence entre ma direction et l'azimut du radar
+      let headingDiff = Math.abs(myHeading - radarAzimut);
+      if (headingDiff > 180) headingDiff = 360 - headingDiff;
+
+      // Différence entre ma direction et la direction vers le radar
+      let bearingDiff = Math.abs(myHeading - bearingToRadar);
+      if (bearingDiff > 180) bearingDiff = 360 - bearingDiff;
+
+      // Je me dirige vers le radar (ou je l'ai dépassé de peu)
+      const goingTowardsRadar = bearingDiff < 120; // Plus tolérant
+
+      // Le radar surveille ma direction (ou sens inverse pour radars bidirectionnels)
+      const radarPointsAtMe = headingDiff < 60; // Plus tolérant pour détecter radars par derrière
+
+      // Radar bidirectionnel
+      const isBidirectional = radar.flash === 'D';
+
+      // Exclure radars latéraux hors chaussée
       if (radar.position === 'L') return false;
+
+      // Le radar est pertinent si:
+      // - Je vais dans sa direction (ou je viens de le passer)
+      // - ET (il est bidirectionnel OU il pointe vers moi)
+      if (!goingTowardsRadar) return false;
+      if (!isBidirectional && !radarPointsAtMe) return false;
 
       return true;
     }
 
-    async function updateRadars() {
-      const apiKey = localStorage.getItem('lufop_api_key');
-      if (!apiKey) {
-        addLog('⚠️ Aucune clé API configurée', 'warning');
-        alert('⚠️ Configure ta clé API d\'abord (clique sur le bouton ?)');
+    async function loadRadars() {
+      const key = document.getElementById('api-key').value.trim();
+      if (!key) {
+        alert('❌ Clé API requise');
         openModal();
         return;
       }
 
-      const radarCount = localStorage.getItem('radar_count') || '2000';
-      const limitFrance = localStorage.getItem('limit_france') !== 'false';
-      const useRadius = localStorage.getItem('use_radius') === 'true';
-      const radiusKm = localStorage.getItem('radius_km') || '1000';
+      localStorage.setItem('lufop_key', key);
 
-      addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
-      addLog('🚀 CHARGEMENT RADARS', 'info');
-
-      // Construire l'URL de l'API avec cumul possible France + rayon
-      let apiUrl = `https://api.lufop.net/api?key=${apiKey}&format=json&nbr=${radarCount}`;
-      let modeDescription = '';
-
-      // Les deux options peuvent être cumulées
-      if (limitFrance && useRadius) {
-        // Mode CUMUL : France + rayon
-        if (!currentPos) {
-          addLog('❌ Position GPS non disponible', 'error');
-          alert('❌ Position GPS requise pour le mode rayon.\nActive ta localisation et réessaie.');
-          return;
-        }
-        apiUrl += `&pays=fr&q=${currentPos.latitude},${currentPos.longitude}&m=${radiusKm}`;
-        modeDescription = `🇫🇷 France + 📍 Rayon ${radiusKm}km`;
-        addLog('Mode: France + rayon ' + radiusKm + ' km', 'info');
-        addLog(`Position: ${currentPos.latitude.toFixed(4)}, ${currentPos.longitude.toFixed(4)}`, 'info');
-
-      } else if (useRadius) {
-        // Mode rayon seul (tous pays)
-        if (!currentPos) {
-          addLog('❌ Position GPS non disponible', 'error');
-          alert('❌ Position GPS requise pour le mode rayon.\nActive ta localisation et réessaie.');
-          return;
-        }
-        apiUrl += `&q=${currentPos.latitude},${currentPos.longitude}&m=${radiusKm}`;
-        modeDescription = `🌍 Monde + 📍 Rayon ${radiusKm}km`;
-        addLog('Mode: Rayon ' + radiusKm + ' km (tous pays)', 'info');
-        addLog(`Position: ${currentPos.latitude.toFixed(4)}, ${currentPos.longitude.toFixed(4)}`, 'info');
-
-      } else if (limitFrance) {
-        // Mode France seule
-        apiUrl += '&pays=fr';
-        modeDescription = '🇫🇷 France uniquement';
-        addLog('Mode: France uniquement', 'info');
-
-      } else {
-        // Mode monde entier
-        modeDescription = '🌍 Monde entier';
-        addLog('Mode: Monde entier (max ' + radarCount + ')', 'info');
-      }
-
-      const url = `https://api.allorigins.win/raw?url=${encodeURIComponent(apiUrl)}`;
-
-      const timeEstimate = radarCount <= 2000 ? '10-15s' : radarCount <= 5000 ? '20-30s' : '30-60s';
-      addLog('⏱️ Temps estimé: ' + timeEstimate, 'warning');
+      const url = `https://api.allorigins.win/raw?url=${encodeURIComponent(
+        'https://api.lufop.net/api?key=' + key + '&format=json&pays=fr&nbr=5000'
+      )}`;
 
       try {
-        addLog('📡 Envoi requête (patiente)...', 'info');
+        document.getElementById('status-btn').textContent = 'Chargement...';
+        document.getElementById('status-btn').className = 'status-orange';
 
-        const controller = new AbortController();
-        const timeoutMs = radarCount <= 5000 ? 45000 : 90000;
-        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Erreur HTTP ' + response.status);
 
-        const response = await fetch(url, {
-          method: 'GET',
-          signal: controller.signal
-        });
+        const data = await response.json();
 
-        clearTimeout(timeoutId);
-
-        addLog('✅ Réponse reçue!', 'success');
-        addLog('Status: ' + response.status, 'success');
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-
-        addLog('📥 Parse JSON...', 'warning');
-
-        const text = await response.text();
-        addLog('Taille: ' + Math.round(text.length / 1024) + ' Ko', 'info');
-
-        let data;
-        try {
-          data = JSON.parse(text);
-          addLog('✅ JSON valide', 'success');
-        } catch (e) {
-          addLog('❌ JSON invalide: ' + e.message, 'error');
-          throw new Error('JSON invalide');
-        }
-
-        if (!Array.isArray(data)) {
-          addLog('❌ Format invalide', 'error');
-          throw new Error('Format invalide');
-        }
-
-        addLog('📊 Radars reçus: ' + data.length, 'success');
-
-        if (data.length === 0) {
-          throw new Error('Aucun radar reçu');
-        }
-
-        addLog('🔨 Traitement données...', 'info');
         radars = data.map(r => ({
           lat: parseFloat(r.latitude),
           lon: parseFloat(r.longitude),
@@ -625,100 +484,52 @@
 
         localStorage.setItem('radars_cache', JSON.stringify(radars));
         localStorage.setItem('radars_date', new Date().toISOString());
+
         updateStatusButton();
+        alert('✅ ' + radars.length + ' radars chargés');
+        closeModal();
 
-        addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'success');
-        addLog('🎉 SUCCÈS! ' + radars.length + ' radars', 'success');
-        addLog('Mode: ' + modeDescription, 'success');
-        addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'success');
-
-        alert('✅ ' + radars.length + ' radars chargés!\n' + modeDescription);
-
-      } catch (e) {
-        addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'error');
-
-        if (e.name === 'AbortError') {
-          addLog('⏱️ TIMEOUT après ' + (timeoutMs/1000) + 's', 'error');
-          addLog('💡 Essaie avec moins de radars', 'warning');
-        } else {
-          addLog('💥 ERREUR: ' + e.message, 'error');
-        }
-
-        addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'error');
-
-        alert('❌ Erreur: ' + (e.name === 'AbortError' ? 'Timeout - essaie avec moins de radars' : e.message));
+      } catch(e) {
+        alert('❌ Erreur: ' + e.message);
+        document.getElementById('status-btn').textContent = 'Erreur';
+        document.getElementById('status-btn').className = 'status-red';
       }
     }
 
     function updateStatusButton() {
-      const lastUpdate = localStorage.getItem('radars_date');
+      const date = localStorage.getItem('radars_date');
       const btn = document.getElementById('status-btn');
 
-      if (!lastUpdate) {
+      if (!date || radars.length === 0) {
         btn.className = 'status-red';
-        btn.textContent = 'Pas de base';
+        btn.textContent = 'Aucune donnée';
         return;
       }
 
-      const daysDiff = (Date.now() - new Date(lastUpdate)) / (1000 * 60 * 60 * 24);
-      if (daysDiff < 1) {
+      const days = (Date.now() - new Date(date)) / 86400000;
+      if (days < 1) {
         btn.className = 'status-green';
-        btn.textContent = 'À jour';
-      } else if (daysDiff < 30) {
+        btn.textContent = radars.length + ' radars';
+      } else if (days < 30) {
         btn.className = 'status-orange';
-        btn.textContent = `MAJ: ${Math.floor(daysDiff)}j`;
+        btn.textContent = radars.length + ' (' + Math.floor(days) + 'j)';
       } else {
         btn.className = 'status-red';
-        btn.textContent = `MAJ: ${Math.floor(daysDiff)}j`;
+        btn.textContent = 'MAJ requise';
       }
     }
 
-    function saveSettings() {
-      const key = document.getElementById('api-key-input').value.trim();
-      const radarCount = document.getElementById('radar-count').value;
-      const limitFrance = document.getElementById('limit-france').checked;
-      const useRadius = document.getElementById('use-radius').checked;
-      const radiusKm = document.getElementById('radius-km').value;
-
-      if (!key) {
-        addLog('❌ Clé vide!', 'error');
-        alert('❌ Entre une clé API valide');
-        return;
-      }
-
-      if (useRadius && !radiusKm) {
-        addLog('❌ Rayon non défini!', 'error');
-        alert('❌ Entre un rayon en km');
-        return;
-      }
-
-      addLog('💾 Enregistrement paramètres...', 'info');
-      addLog('Radars max: ' + radarCount, 'info');
-      addLog('France: ' + (limitFrance ? 'Oui' : 'Non'), 'info');
-      addLog('Rayon: ' + (useRadius ? radiusKm + ' km' : 'Non'), 'info');
-
-      if (limitFrance && useRadius) {
-        addLog('✅ Mode CUMUL: France + Rayon activé', 'success');
-      }
-
-      localStorage.setItem('lufop_api_key', key);
-      localStorage.setItem('radar_count', radarCount);
-      localStorage.setItem('limit_france', limitFrance);
-      localStorage.setItem('use_radius', useRadius);
-      localStorage.setItem('radius_km', radiusKm);
-
-      addLog('✅ Paramètres sauvegardés', 'success');
-
-      updateRadars();
-    }
-
+    // Monitoring GPS
     navigator.geolocation.watchPosition(pos => {
       currentPos = pos.coords;
       currentSpeed = (pos.coords.speed || 0) * 3.6;
       currentBearing = pos.coords.heading || 0;
 
+      updateDebug();
+
       document.getElementById('speed-value').textContent = Math.round(currentSpeed);
 
+      // Filtrer les radars pertinents
       const relevant = radars.filter(isRelevantRadar)
         .map(r => ({
           ...r,
@@ -726,63 +537,106 @@
         }))
         .sort((a, b) => a.distance - b.distance);
 
-      if (relevant.length > 0 && relevant[0].distance < 500) {
-        const radar = relevant[0];
-        activeRadar = radar;
-
-        document.getElementById('radar-panel').style.display = 'block';
-        document.getElementById('radar-limit').textContent = radar.speed;
-        document.getElementById('radar-distance').textContent = `${Math.round(radar.distance)}m`;
-
-        if (currentSpeed <= radar.speed + 1) {
-          document.body.className = 'bg-green';
-        } else if (currentSpeed <= radar.speed + 4) {
-          document.body.className = 'bg-orange';
-        } else {
-          document.body.className = 'bg-red';
-        }
-
-        const now = Date.now();
-        if (radar.distance < 500 && lastBeepTime === 0) {
-          beep(1500, 300);
-          lastBeepTime = now;
-        }
-        if (currentSpeed > radar.speed + 4 && now - lastBeepTime > 2000) {
-          beep(2000, 200);
-          lastBeepTime = now;
-        }
-
-        const gaugeProgress = Math.max(0, Math.min(100, ((500 - radar.distance) / 550) * 100));
-        document.getElementById('gauge-fill').style.width = gaugeProgress + '%';
-
-      } else {
-        activeRadar = null;
-        document.getElementById('radar-panel').style.display = 'none';
-        document.body.className = '';
-        document.getElementById('gauge-fill').style.width = '0%';
-        lastBeepTime = 0;
+      if (debugMode) {
+        document.getElementById('dbg-relevant').textContent = relevant.length;
       }
+
+      if (relevant.length > 0) {
+        const radar = relevant[0];
+        const zone = getAlertZone(radar.speed);
+
+        // Afficher si dans la zone d'alerte
+        if (radar.distance <= zone.before + zone.after) {
+          activeRadar = radar;
+
+          // Affichage du panneau
+          document.getElementById('radar-panel').style.display = 'block';
+          document.getElementById('radar-limit').textContent = radar.speed;
+
+          // Distance affichée
+          const distDisplay = document.getElementById('radar-distance');
+          if (radar.distance <= zone.before) {
+            distDisplay.textContent = 'Dans ' + Math.round(radar.distance) + 'm';
+            distDisplay.className = '';
+          } else {
+            const passedBy = Math.round(radar.distance - zone.before);
+            distDisplay.textContent = 'Dépassé de ' + passedBy + 'm';
+            distDisplay.className = 'passed';
+          }
+
+          // Couleur de fond selon vitesse
+          if (currentSpeed <= radar.speed + 1) {
+            document.body.className = 'bg-green';
+          } else if (currentSpeed <= radar.speed + 5) {
+            document.body.className = 'bg-orange';
+          } else {
+            document.body.className = 'bg-red';
+          }
+
+          // Barre de progression avec marqueur du radar
+          const totalZone = zone.before + zone.after;
+          let progress;
+
+          if (radar.distance <= zone.before) {
+            // Avant le radar: 0% (loin) à 50% (au radar)
+            progress = ((zone.before - radar.distance) / zone.before) * 50;
+          } else {
+            // Après le radar: 50% (au radar) à 100% (fin de zone)
+            const afterDist = radar.distance - zone.before;
+            progress = 50 + (afterDist / zone.after) * 50;
+          }
+
+          progress = Math.max(0, Math.min(100, progress));
+          document.getElementById('gauge-fill').style.width = progress + '%';
+
+          // Marqueur du radar à 50% (position du radar)
+          const marker = document.getElementById('radar-marker');
+          marker.style.display = 'block';
+          marker.style.left = '50%';
+
+          // Beep sonore
+          const now = Date.now();
+          if (radar.distance <= zone.before && radar.distance > zone.before * 0.8 && lastBeepTime === 0) {
+            beep(1500, 300);
+            lastBeepTime = now;
+          }
+          if (currentSpeed > radar.speed + 5 && now - lastBeepTime > 2000) {
+            beep(2000, 200);
+            lastBeepTime = now;
+          }
+
+        } else {
+          resetDisplay();
+        }
+      } else {
+        resetDisplay();
+      }
+
     }, null, { enableHighAccuracy: true, maximumAge: 1000 });
 
+    function resetDisplay() {
+      activeRadar = null;
+      document.getElementById('radar-panel').style.display = 'none';
+      document.getElementById('radar-marker').style.display = 'none';
+      document.body.className = '';
+      document.getElementById('gauge-fill').style.width = '0%';
+      lastBeepTime = 0;
+    }
+
+    // Chargement initial
     window.onload = () => {
-      addLog('🚀 App démarrée', 'success');
       const cached = localStorage.getItem('radars_cache');
       if (cached) {
         try {
           radars = JSON.parse(cached);
-          addLog('📦 ' + radars.length + ' radars en cache', 'success');
+          console.log('✅ Radars chargés du cache:', radars.length);
         } catch(e) {
-          addLog('❌ Cache corrompu', 'error');
+          console.error('Cache corrompu');
         }
       }
       updateStatusButton();
-
-      if (!localStorage.getItem('lufop_api_key')) {
-        addLog('⚠️ Aucune clé API - ouvre les paramètres', 'warning');
-      }
     };
   </script>
 
-
-
-</body></html>
+</body>
+</html>
