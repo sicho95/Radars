@@ -3,113 +3,155 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Radar Alert Pro</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    * { 
+      margin: 0; 
+      padding: 0; 
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      position: fixed;
+    }
+
     body { 
       background: #000; 
       color: #fff; 
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
-      overflow: hidden;
-      height: 100vh;
       transition: background 0.3s;
       touch-action: none;
     }
 
+    /* Boutons en haut à droite avec marges 10% */
     #top-controls {
       position: fixed;
-      top: 10px;
-      right: 10px;
+      top: 10vh;
+      right: 10vw;
       display: flex;
-      gap: 8px;
+      gap: clamp(6px, 2vw, 10px);
       z-index: 1000;
     }
 
     #status-btn {
-      padding: 10px 15px;
+      padding: clamp(8px, 2vw, 12px) clamp(12px, 3vw, 18px);
       border: 2px solid #fff;
-      border-radius: 8px;
+      border-radius: clamp(6px, 2vw, 10px);
       cursor: pointer;
-      font-size: 14px;
+      font-size: clamp(12px, 3vw, 16px);
       font-weight: bold;
+      white-space: nowrap;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.5);
     }
     .status-green { background: #0a0; color: #fff; }
     .status-orange { background: #f80; color: #000; }
     .status-red { background: #f00; color: #fff; }
 
     #settings-btn, #debug-btn {
-      width: 40px;
-      height: 40px;
+      width: clamp(35px, 10vw, 45px);
+      height: clamp(35px, 10vw, 45px);
       border: 2px solid #0ff;
       border-radius: 50%;
       background: #222;
       color: #0ff;
-      font-size: 20px;
+      font-size: clamp(16px, 4vw, 22px);
       font-weight: bold;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.5);
     }
-    #settings-btn:active, #debug-btn:active { background: #0ff; color: #000; }
+    #settings-btn:active, #debug-btn:active { 
+      background: #0ff; 
+      color: #000; 
+    }
 
+    /* Vitesse parfaitement centrée en hauteur et largeur */
     #speed-display {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
       text-align: center;
-      font-size: 160px;
       font-weight: bold;
-      margin-top: 100px;
       text-shadow: 0 0 20px currentColor;
       line-height: 1;
     }
-    #speed-unit { font-size: 45px; vertical-align: super; margin-left: 5px; }
+    #speed-value {
+      font-size: clamp(100px, 25vw, 180px);
+      display: block;
+    }
+    #speed-unit { 
+      font-size: clamp(30px, 7vw, 50px);
+      margin-left: 5px;
+    }
 
+    /* Panneau radar bien visible */
     #radar-panel {
       position: fixed;
-      bottom: 80px;
+      bottom: clamp(80px, 20vh, 140px);
       left: 50%;
       transform: translateX(-50%);
       background: rgba(0,0,0,0.95);
-      border: 3px solid #fff;
-      border-radius: 15px;
-      padding: 20px;
-      min-width: 300px;
+      border: clamp(3px, 1vw, 5px) solid #fff;
+      border-radius: clamp(12px, 3vw, 20px);
+      padding: clamp(15px, 4vw, 25px) clamp(20px, 5vw, 35px);
+      min-width: clamp(250px, 70vw, 350px);
+      max-width: 90vw;
       text-align: center;
       display: none;
+      box-shadow: 0 0 30px rgba(255,255,255,0.8);
     }
     #radar-limit {
-      font-size: 60px;
+      font-size: clamp(50px, 15vw, 80px);
       font-weight: bold;
       color: #f00;
+      text-shadow: 0 0 15px #f00, 0 0 30px #f00;
+      line-height: 1;
     }
     #radar-distance {
-      font-size: 24px;
-      margin-top: 10px;
+      font-size: clamp(20px, 5vw, 32px);
+      margin-top: clamp(8px, 2vh, 12px);
+      font-weight: bold;
+    }
+    #radar-distance.passed {
+      color: #888;
+      font-style: italic;
     }
 
+    /* Barre en bas avec 10% de marge */
     #gauge-container {
       position: fixed;
-      bottom: 10px;
-      left: 10px;
-      right: 10px;
-      height: 40px;
+      bottom: 10vh;
+      left: 5vw;
+      right: 5vw;
+      height: clamp(35px, 8vh, 50px);
       background: #222;
-      border: 2px solid #fff;
-      border-radius: 5px;
+      border: clamp(2px, 0.5vw, 3px) solid #fff;
+      border-radius: clamp(5px, 1.5vw, 8px);
       overflow: visible;
-      position: relative;
+      box-shadow: 0 2px 15px rgba(0,0,0,0.5);
     }
     #gauge-fill {
       height: 100%;
       background: linear-gradient(90deg, #0f0, #ff0, #f00);
       width: 0%;
       transition: width 0.3s;
+      border-radius: clamp(3px, 1vw, 6px);
     }
 
     #radar-marker {
       position: absolute;
       top: -3px;
       bottom: -3px;
-      width: 3px;
+      width: clamp(3px, 0.8vw, 5px);
       background: #fff;
       box-shadow: 0 0 10px #fff, 0 0 20px #fff;
       display: none;
@@ -118,10 +160,10 @@
     #radar-marker::before {
       content: '📷';
       position: absolute;
-      top: -30px;
+      top: -35px;
       left: 50%;
       transform: translateX(-50%);
-      font-size: 18px;
+      font-size: clamp(16px, 4vw, 24px);
       filter: drop-shadow(0 0 5px #000);
     }
 
@@ -132,18 +174,22 @@
     #modal-overlay {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.8);
+      background: rgba(0,0,0,0.85);
       z-index: 1999;
       display: none;
     }
 
     #settings-modal {
       position: fixed;
-      top: 5%; left: 5%; right: 5%; bottom: 5%;
+      top: 5%;
+      left: 5%;
+      right: 5%;
+      bottom: 5%;
+      max-height: 90vh;
       background: #111;
       border: 3px solid #0ff;
-      padding: 15px;
-      border-radius: 10px;
+      padding: clamp(12px, 3vw, 20px);
+      border-radius: clamp(8px, 2vw, 15px);
       z-index: 2000;
       display: none;
       overflow-y: auto;
@@ -152,90 +198,81 @@
 
     #settings-modal h3 {
       color: #0ff;
-      font-size: 20px;
-      margin-bottom: 15px;
+      font-size: clamp(18px, 4.5vw, 24px);
+      margin-bottom: clamp(12px, 3vh, 20px);
       border-bottom: 2px solid #0ff;
-      padding-bottom: 10px;
+      padding-bottom: clamp(8px, 2vh, 12px);
     }
 
     #settings-modal h4 {
       color: #ff0;
-      font-size: 16px;
-      margin: 15px 0 8px 0;
+      font-size: clamp(14px, 3.5vw, 18px);
+      margin: clamp(12px, 3vh, 18px) 0 clamp(6px, 1.5vh, 10px) 0;
     }
 
     #settings-modal label {
       display: block;
       color: #aaa;
-      font-size: 13px;
+      font-size: clamp(12px, 3vw, 15px);
       margin-bottom: 5px;
+      line-height: 1.4;
     }
 
     #settings-modal input[type="text"],
-    #settings-modal input[type="number"] {
-      width: 100%;
-      padding: 12px;
-      margin-bottom: 10px;
-      background: #222;
-      border: 2px solid #fff;
-      color: #fff;
-      font-size: 16px;
-      border-radius: 5px;
-    }
-
+    #settings-modal input[type="number"],
     #settings-modal select {
       width: 100%;
-      padding: 12px;
-      margin-bottom: 10px;
+      padding: clamp(10px, 2.5vw, 14px);
+      margin-bottom: clamp(8px, 2vh, 12px);
       background: #222;
       border: 2px solid #fff;
       color: #fff;
-      font-size: 16px;
-      border-radius: 5px;
+      font-size: clamp(14px, 3.5vw, 18px);
+      border-radius: clamp(5px, 1.5vw, 8px);
     }
 
     #settings-modal button {
       width: 100%;
-      padding: 14px;
+      padding: clamp(12px, 3vw, 16px);
       border: none;
       color: #fff;
-      font-size: 16px;
+      font-size: clamp(14px, 3.5vw, 18px);
       cursor: pointer;
-      border-radius: 5px;
-      margin: 5px 0;
+      border-radius: clamp(5px, 1.5vw, 8px);
+      margin: clamp(5px, 1.5vh, 8px) 0;
       font-weight: bold;
     }
 
     .checkbox-container {
       display: flex;
       align-items: center;
-      gap: 10px;
-      padding: 12px;
+      gap: clamp(8px, 2vw, 12px);
+      padding: clamp(10px, 2.5vw, 14px);
       background: #222;
       border: 2px solid #fff;
-      border-radius: 5px;
-      margin-bottom: 10px;
+      border-radius: clamp(5px, 1.5vw, 8px);
+      margin-bottom: clamp(8px, 2vh, 12px);
       cursor: pointer;
     }
     .checkbox-container input[type="checkbox"] {
-      width: 20px;
-      height: 20px;
+      width: clamp(18px, 4vw, 24px);
+      height: clamp(18px, 4vw, 24px);
       cursor: pointer;
     }
     .checkbox-container label {
       margin: 0;
       cursor: pointer;
-      font-size: 14px;
+      font-size: clamp(13px, 3.2vw, 16px);
       color: #fff;
     }
 
     .radius-group {
-      margin-left: 20px;
-      padding: 10px;
+      margin-left: clamp(15px, 4vw, 25px);
+      padding: clamp(8px, 2vw, 12px);
       background: #1a1a1a;
       border-left: 3px solid #0ff;
-      border-radius: 5px;
-      margin-bottom: 10px;
+      border-radius: clamp(5px, 1.5vw, 8px);
+      margin-bottom: clamp(8px, 2vh, 12px);
     }
     .radius-group.disabled {
       opacity: 0.5;
@@ -249,10 +286,11 @@
     .info-box {
       background: #222;
       border-left: 4px solid #0ff;
-      padding: 10px;
-      margin: 10px 0;
-      font-size: 12px;
+      padding: clamp(8px, 2vw, 12px);
+      margin: clamp(8px, 2vh, 12px) 0;
+      font-size: clamp(11px, 2.8vw, 14px);
       line-height: 1.5;
+      border-radius: clamp(3px, 1vw, 5px);
     }
     .info-box.warning { border-left-color: #ff0; }
     .info-box.success { border-left-color: #0f0; }
@@ -260,19 +298,64 @@
 
     #debug-info {
       position: fixed;
-      top: 60px;
-      right: 10px;
+      top: clamp(60px, 15vh, 80px);
+      right: 5vw;
       background: rgba(0,0,0,0.9);
-      padding: 10px;
+      padding: clamp(8px, 2vw, 12px);
       border: 2px solid #0ff;
-      border-radius: 5px;
-      font-family: monospace;
-      font-size: 11px;
+      border-radius: clamp(5px, 1.5vw, 8px);
+      font-family: 'Courier New', monospace;
+      font-size: clamp(10px, 2.5vw, 13px);
       display: none;
       z-index: 999;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.5);
     }
     #debug-info div {
-      margin: 3px 0;
+      margin: clamp(2px, 0.5vh, 4px) 0;
+      white-space: nowrap;
+    }
+
+    /* Adaptations paysage */
+    @media (orientation: landscape) {
+      #speed-value {
+        font-size: clamp(80px, 18vh, 140px);
+      }
+      #speed-unit {
+        font-size: clamp(25px, 5vh, 40px);
+      }
+      #radar-panel {
+        bottom: clamp(70px, 15vh, 100px);
+      }
+      #radar-limit {
+        font-size: clamp(40px, 12vh, 60px);
+      }
+      #radar-distance {
+        font-size: clamp(16px, 4vh, 24px);
+      }
+    }
+
+    /* Adaptations petits écrans */
+    @media (max-width: 375px) {
+      #top-controls {
+        top: 5vh;
+        right: 5vw;
+        gap: 5px;
+      }
+      #status-btn {
+        font-size: 11px;
+        padding: 6px 10px;
+      }
+    }
+
+    /* Adaptations grands écrans / tablettes */
+    @media (min-width: 768px) {
+      #speed-value {
+        font-size: clamp(120px, 20vw, 200px);
+      }
+      #gauge-container {
+        left: 10vw;
+        right: 10vw;
+      }
     }
   </style>
 </head>
@@ -476,7 +559,6 @@
       return (θ * 180 / Math.PI + 360) % 360;
     }
 
-    // ALGORITHME CORRIGÉ
     function isRelevantRadar(radar) {
       if (!currentPos || currentBearing === null) return false;
 
@@ -646,7 +728,6 @@
       }
     }
 
-    // Monitoring GPS
     navigator.geolocation.watchPosition(pos => {
       currentPos = pos.coords;
       currentSpeed = (pos.coords.speed || 0) * 3.6;
@@ -685,8 +766,10 @@
 
           if (radar.distance <= zone.before) {
             document.getElementById('radar-distance').textContent = 'Dans ' + Math.round(radar.distance) + 'm';
+            document.getElementById('radar-distance').className = '';
           } else {
             document.getElementById('radar-distance').textContent = 'Dépassé de ' + Math.round(radar.distance - zone.before) + 'm';
+            document.getElementById('radar-distance').className = 'passed';
           }
 
           if (currentSpeed <= radar.speed + 1) {
@@ -697,13 +780,11 @@
             document.body.className = 'bg-red';
           }
 
-          // CORRECTION : Position du marqueur selon distance réelle
           const totalZone = zone.before + zone.after;
           let progress = ((totalZone - radar.distance) / totalZone) * 100;
           progress = Math.max(0, Math.min(100, progress));
           document.getElementById('gauge-fill').style.width = progress + '%';
 
-          // Position du marqueur radar sur la barre
           const radarPosition = (zone.before / totalZone) * 100;
           document.getElementById('radar-marker').style.display = 'block';
           document.getElementById('radar-marker').style.left = radarPosition + '%';
