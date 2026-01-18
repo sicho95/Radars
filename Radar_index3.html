@@ -1,280 +1,51 @@
 <!DOCTYPE html><html lang="fr"><head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <title>Testeur Radar - Multi API</title>
+  <title>Testeur Radar - Multi API + Zoom</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { 
-      background: #000; 
-      color: #fff; 
-      font-family: Arial, sans-serif; 
-      overflow: hidden;
-      height: 100vh;
-    }
-
-    #top-controls {
-      position: fixed;
-      top: 10px;
-      right: 10px;
-      display: flex;
-      gap: 8px;
-      z-index: 1000;
-    }
-
-    #status-btn {
-      padding: 10px 15px;
-      border: 2px solid #fff;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 14px;
-    }
+    body { background: #000; color: #fff; font-family: Arial, sans-serif; overflow: hidden; height: 100vh; }
+    #top-controls { position: fixed; top: 10px; right: 10px; display: flex; gap: 8px; z-index: 1000; }
+    #status-btn { padding: 10px 15px; border: 2px solid #fff; border-radius: 8px; cursor: pointer; font-size: 14px; }
     .status-green { background: #0a0; color: #fff; }
     .status-orange { background: #f80; color: #000; }
     .status-red { background: #f00; color: #fff; }
-
-    #settings-btn {
-      width: 40px;
-      height: 40px;
-      border: 2px solid #0ff;
-      border-radius: 50%;
-      background: #222;
-      color: #0ff;
-      font-size: 20px;
-      font-weight: bold;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    #settings-btn:active {
-      background: #0ff;
-      color: #000;
-    }
-
-    #speed-display {
-      text-align: center;
-      font-size: 180px;
-      font-weight: bold;
-      margin-top: 120px;
-      text-shadow: 0 0 20px currentColor;
-    }
+    #settings-btn { width: 40px; height: 40px; border: 2px solid #0ff; border-radius: 50%; background: #222; color: #0ff; font-size: 20px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    #settings-btn:active { background: #0ff; color: #000; }
+    #speed-display { text-align: center; font-size: 180px; font-weight: bold; margin-top: 120px; text-shadow: 0 0 20px currentColor; }
     #speed-unit { font-size: 50px; vertical-align: super; margin-left: 5px; }
-
-    #radar-panel {
-      position: fixed;
-      bottom: 80px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(0,0,0,0.9);
-      border: 3px solid #fff;
-      border-radius: 15px;
-      padding: 20px;
-      min-width: 300px;
-      text-align: center;
-      display: none;
-    }
-    #radar-limit {
-      font-size: 60px;
-      font-weight: bold;
-      color: #f00;
-    }
-    #radar-distance {
-      font-size: 24px;
-      margin-top: 10px;
-    }
-
-    #gauge-container {
-      position: fixed;
-      bottom: 10px;
-      left: 10px;
-      right: 10px;
-      height: 40px;
-      background: #222;
-      border: 2px solid #fff;
-      border-radius: 5px;
-      overflow: hidden;
-    }
-    #gauge-fill {
-      height: 100%;
-      background: linear-gradient(90deg, #0f0, #ff0, #f00);
-      width: 0%;
-      transition: width 0.3s;
-    }
-
+    #radar-panel { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.9); border: 3px solid #fff; border-radius: 15px; padding: 20px; min-width: 300px; text-align: center; display: none; }
+    #radar-limit { font-size: 60px; font-weight: bold; color: #f00; }
+    #radar-distance { font-size: 24px; margin-top: 10px; }
+    #gauge-container { position: fixed; bottom: 10px; left: 10px; right: 10px; height: 40px; background: #222; border: 2px solid #fff; border-radius: 5px; overflow: hidden; }
+    #gauge-fill { height: 100%; background: linear-gradient(90deg, #0f0, #ff0, #f00); width: 0%; transition: width 0.3s; }
     .bg-green { background: #0a0 !important; }
     .bg-orange { background: #f80 !important; }
     .bg-red { background: #f00 !important; }
-
-    #modal-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0,0,0,0.8);
-      z-index: 1999;
-      display: none;
-    }
-
-    #settings-modal {
-      position: fixed;
-      top: 5%;
-      left: 5%;
-      right: 5%;
-      bottom: 5%;
-      background: #111;
-      border: 3px solid #0ff;
-      padding: 15px;
-      border-radius: 10px;
-      z-index: 2000;
-      display: none;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-    }
-    #settings-modal h3 {
-      margin-bottom: 15px;
-      color: #0ff;
-      font-size: 20px;
-      border-bottom: 2px solid #0ff;
-      padding-bottom: 10px;
-    }
-    #settings-modal h4 {
-      margin: 15px 0 8px 0;
-      color: #ff0;
-      font-size: 16px;
-    }
-    #settings-modal label {
-      display: block;
-      color: #aaa;
-      font-size: 13px;
-      margin-bottom: 5px;
-    }
-    #settings-modal input[type="text"],
-    #settings-modal input[type="number"] {
-      width: 100%;
-      padding: 12px;
-      margin-bottom: 10px;
-      background: #222;
-      border: 2px solid #fff;
-      color: #fff;
-      font-size: 16px;
-      border-radius: 5px;
-    }
-    #settings-modal select {
-      width: 100%;
-      padding: 12px;
-      margin-bottom: 10px;
-      background: #222;
-      border: 2px solid #fff;
-      color: #fff;
-      font-size: 16px;
-      border-radius: 5px;
-    }
-    #settings-modal button {
-      width: 100%;
-      padding: 14px;
-      border: none;
-      color: #fff;
-      font-size: 16px;
-      cursor: pointer;
-      border-radius: 5px;
-      margin: 5px 0;
-      font-weight: bold;
-    }
-
-    .checkbox-container {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 12px;
-      background: #222;
-      border: 2px solid #fff;
-      border-radius: 5px;
-      margin-bottom: 10px;
-      cursor: pointer;
-    }
-    .checkbox-container input[type="checkbox"] {
-      width: 20px;
-      height: 20px;
-      cursor: pointer;
-    }
-    .checkbox-container label {
-      margin: 0;
-      cursor: pointer;
-      font-size: 14px;
-      color: #fff;
-    }
-
-    .radius-group {
-      margin-left: 20px;
-      padding: 10px;
-      background: #1a1a1a;
-      border-left: 3px solid #0ff;
-      border-radius: 5px;
-      margin-bottom: 10px;
-    }
-    .radius-group.disabled {
-      opacity: 0.5;
-      pointer-events: none;
-    }
-
-    #btn-validate {
-      background: #0a0;
-    }
-    #btn-clear-key {
-      background: #f80;
-    }
-    #btn-close {
-      background: #666;
-    }
-
-    .info-box {
-      background: #222;
-      border-left: 4px solid #0ff;
-      padding: 10px;
-      margin: 10px 0;
-      font-size: 13px;
-      line-height: 1.5;
-    }
-    .info-box.warning {
-      border-left-color: #ff0;
-    }
-    .info-box.success {
-      border-left-color: #0f0;
-    }
-    .info-box.danger {
-      border-left-color: #f00;
-    }
-
-    #debug-section {
-      margin-top: 20px;
-      border-top: 2px solid #0ff;
-      padding-top: 15px;
-    }
-    #debug-section h4 {
-      color: #0ff;
-      margin-bottom: 10px;
-      font-size: 16px;
-    }
-    #debug-log {
-      background: #000;
-      border: 2px solid #0f0;
-      border-radius: 5px;
-      padding: 10px;
-      min-height: 200px;
-      max-height: 300px;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-      font-family: monospace;
-      font-size: 12px;
-      text-align: left;
-      line-height: 1.5;
-    }
-    .log-entry {
-      margin: 3px 0;
-      padding: 3px 0;
-      border-bottom: 1px solid #222;
-    }
+    #modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 1999; display: none; }
+    #settings-modal { position: fixed; top: 5%; left: 5%; right: 5%; bottom: 5%; background: #111; border: 3px solid #0ff; padding: 15px; border-radius: 10px; z-index: 2000; display: none; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+    #settings-modal h3 { margin-bottom: 15px; color: #0ff; font-size: 20px; border-bottom: 2px solid #0ff; padding-bottom: 10px; }
+    #settings-modal h4 { margin: 15px 0 8px 0; color: #ff0; font-size: 16px; }
+    #settings-modal label { display: block; color: #aaa; font-size: 13px; margin-bottom: 5px; }
+    #settings-modal input[type="text"], #settings-modal input[type="number"] { width: 100%; padding: 12px; margin-bottom: 10px; background: #222; border: 2px solid #fff; color: #fff; font-size: 16px; border-radius: 5px; }
+    #settings-modal select { width: 100%; padding: 12px; margin-bottom: 10px; background: #222; border: 2px solid #fff; color: #fff; font-size: 16px; border-radius: 5px; }
+    #settings-modal button { width: 100%; padding: 14px; border: none; color: #fff; font-size: 16px; cursor: pointer; border-radius: 5px; margin: 5px 0; font-weight: bold; }
+    .checkbox-container { display: flex; align-items: center; gap: 10px; padding: 12px; background: #222; border: 2px solid #fff; border-radius: 5px; margin-bottom: 10px; cursor: pointer; }
+    .checkbox-container input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; }
+    .checkbox-container label { margin: 0; cursor: pointer; font-size: 14px; color: #fff; }
+    .radius-group { margin-left: 20px; padding: 10px; background: #1a1a1a; border-left: 3px solid #0ff; border-radius: 5px; margin-bottom: 10px; }
+    .radius-group.disabled { opacity: 0.5; pointer-events: none; }
+    #btn-validate { background: #0a0; }
+    #btn-clear-key { background: #f80; }
+    #btn-close { background: #666; }
+    .info-box { background: #222; border-left: 4px solid #0ff; padding: 10px; margin: 10px 0; font-size: 13px; line-height: 1.5; }
+    .info-box.warning { border-left-color: #ff0; }
+    .info-box.success { border-left-color: #0f0; }
+    .info-box.danger { border-left-color: #f00; }
+    #debug-section { margin-top: 20px; border-top: 2px solid #0ff; padding-top: 15px; }
+    #debug-section h4 { color: #0ff; margin-bottom: 10px; font-size: 16px; }
+    #debug-log { background: #000; border: 2px solid #0f0; border-radius: 5px; padding: 10px; min-height: 200px; max-height: 300px; overflow-y: auto; -webkit-overflow-scrolling: touch; font-family: monospace; font-size: 12px; text-align: left; line-height: 1.5; }
+    .log-entry { margin: 3px 0; padding: 3px 0; border-bottom: 1px solid #222; }
     .log-info { color: #0ff; }
     .log-success { color: #0f0; }
     .log-warning { color: #ff0; }
@@ -282,79 +53,76 @@
     .log-time { color: #888; font-size: 10px; margin-right: 5px; }
   </style>
 </head>
-<body class="">
+<body>
 
   <div id="modal-overlay"></div>
 
   <div id="settings-modal">
-    <h3>⚙️ Paramètres - Version Test Multi-API</h3>
+    <h3>⚙️ Paramètres Multi-API + Zoom</h3>
 
     <h4>🔌 Source API</h4>
     <select id="api-source">
-      <option value="lufop" selected>Lufop API (officielle, gratuite)</option>
+      <option value="lufop" selected>Lufop API (officielle)</option>
       <option value="blitzer">Blitzer.de (non officielle ⚠️)</option>
     </select>
 
     <div class="info-box danger" id="blitzer-warning" style="display:none">
-      ⚠️ <b>Blitzer.de API non officielle</b><br>
-      • Pas de documentation publique<br>
-      • Peut cesser de fonctionner à tout moment<br>
-      • Utilisation potentiellement interdite par leurs CGU<br>
-      • Format de données différent de Lufop
+      ⚠️ <b>Blitzer.de non officielle - peut cesser de fonctionner</b>
     </div>
 
-    <h4>🔑 Clé API (uniquement pour Lufop)</h4>
-    <label>Obtiens ta clé gratuite sur <a href="https://api.lufop.net" target="_blank" style="color:#0ff">api.lufop.net</a></label>
-    <input type="text" id="api-key-input" placeholder="Colle ta clé API ici (32 caractères)">
+    <h4>🔑 Clé API (Lufop uniquement)</h4>
+    <input type="text" id="api-key-input" placeholder="Clé API Lufop">
 
     <h4>🌐 Méthode d'accès</h4>
     <select id="access-method">
-      <option value="proxy" selected>Via Proxy (AllOrigins - contourne CORS)</option>
-      <option value="direct">Accès direct (peut échouer si CORS bloqué)</option>
+      <option value="proxy" selected>Via Proxy (recommandé)</option>
+      <option value="direct">Direct</option>
     </select>
 
-    <div class="info-box">
-      💡 <b>Proxy vs Direct :</b><br>
-      • <b>Proxy</b> : Passe par AllOrigins pour contourner les restrictions CORS (recommandé)<br>
-      • <b>Direct</b> : Appel direct à l'API (plus rapide mais peut être bloqué par le navigateur)
-    </div>
-
-    <h4>🌍 Zone géographique (options cumulables)</h4>
+    <h4>🌍 Zone géographique</h4>
 
     <div class="checkbox-container" onclick="document.getElementById('limit-france').click()">
       <input type="checkbox" id="limit-france" checked onclick="event.stopPropagation()">
-      <label for="limit-france">Limiter à la France uniquement</label>
+      <label for="limit-france">Limiter à la France</label>
     </div>
 
     <div class="checkbox-container" onclick="document.getElementById('use-radius').click()">
       <input type="checkbox" id="use-radius" onclick="event.stopPropagation(); toggleRadius()">
-      <label for="use-radius">Limiter par rayon autour de ma position</label>
+      <label for="use-radius">Limiter par rayon</label>
     </div>
 
     <div class="radius-group disabled" id="radius-group">
-      <label>Rayon en kilomètres (10 à 5000)</label>
+      <label>Rayon en km (10-5000)</label>
       <input type="number" id="radius-km" placeholder="1000" min="10" max="5000" value="1000">
     </div>
 
-    <h4>📊 Nombre maximum de radars</h4>
-    <label>Saisis le nombre de radars à charger (100 à 25000, <b style="color:#0f0">recommandé: 5000</b>)</label>
+    <h4>🔍 Zoom Blitzer.de (1=large, 15=détaillé)</h4>
+    <label><b style="color:#0f0">Zoom 1</b> (continent, peu de radars) → <b style="color:#0f0">15</b> (local, max radars)</label>
+    <input type="number" id="zoom-level" placeholder="8" min="1" max="15" value="8">
+
+    <div class="info-box warning">
+      🔍 <b>Paramètre Blitzer.de uniquement</b><br>
+      • Zoom 1-5: Vue large (peu de radars)<br>
+      • Zoom 6-10: Équilibré (<b>recommandé: 8</b>)<br>
+      • Zoom 11-15: Détaillé (max radars, lent)
+    </div>
+
+    <h4>📊 Nombre max de radars</h4>
     <input type="number" id="radar-count" placeholder="5000" min="100" max="25000" value="5000">
 
     <button id="btn-validate" onclick="saveSettings()">✓ VALIDER ET CHARGER</button>
-    <button id="btn-clear-key" onclick="clearApiKey()">🗑️ EFFACER CACHE</button>
+    <button id="btn-clear-key" onclick="clearCache()">🗑️ EFFACER CACHE</button>
     <button id="btn-close" onclick="closeModal()">✕ FERMER</button>
 
     <div id="debug-section">
-      <h4>📋 Journal de débogage</h4>
-      <div id="debug-log">
-        <div class="log-entry log-info"><span class="log-time">--:--:--</span> ℹ️ Modale de paramètres ouverte</div>
-      </div>
+      <h4>📋 Journal</h4>
+      <div id="debug-log"></div>
     </div>
   </div>
 
   <div id="top-controls">
     <div id="status-btn" class="status-red" onclick="updateRadars()">Pas de base</div>
-    <div id="settings-btn" onclick="openModal()" title="Paramètres">?</div>
+    <div id="settings-btn" onclick="openModal()">?</div>
   </div>
 
   <div id="speed-display">
@@ -367,49 +135,28 @@
   </div>
 
   <div id="gauge-container">
-    <div id="gauge-fill" style="width: 0%;"></div>
+    <div id="gauge-fill"></div>
   </div>
 
   <script>
-    let radars = [];
-    let currentPos = null;
-    let currentSpeed = 0;
-    let currentBearing = 0;
-    let activeRadar = null;
-    let lastBeepTime = 0;
-    let audioContext = null;
+    let radars = [], currentPos = null, currentSpeed = 0, currentBearing = 0, activeRadar = null, lastBeepTime = 0, audioContext = null;
 
     function toggleRadius() {
       const checkbox = document.getElementById('use-radius');
-      const radiusGroup = document.getElementById('radius-group');
-
-      if (checkbox.checked) {
-        radiusGroup.classList.remove('disabled');
-        addLog('Mode rayon activé', 'info');
-      } else {
-        radiusGroup.classList.add('disabled');
-        addLog('Mode rayon désactivé', 'info');
-      }
+      document.getElementById('radius-group').classList.toggle('disabled', !checkbox.checked);
+      addLog('Mode rayon ' + (checkbox.checked ? 'activé' : 'désactivé'), 'info');
     }
 
     function addLog(msg, type = 'info') {
-      console.log(`[${type}]`, msg);
       const log = document.getElementById('debug-log');
       if (!log) return;
-
       const time = new Date().toLocaleTimeString('fr-FR');
-      const logClass = `log-${type}`;
       const icon = type === 'error' ? '❌' : type === 'success' ? '✅' : type === 'warning' ? '⚠️' : 'ℹ️';
-
       const entry = document.createElement('div');
-      entry.className = `log-entry ${logClass}`;
-      entry.innerHTML = `<span class="log-time">${time}</span>${icon} ${msg}`;
-
+      entry.className = 'log-entry log-' + type;
+      entry.innerHTML = '<span class="log-time">' + time + '</span>' + icon + ' ' + msg;
       log.insertBefore(entry, log.firstChild);
-
-      while (log.children.length > 50) {
-        log.removeChild(log.lastChild);
-      }
+      while (log.children.length > 50) log.removeChild(log.lastChild);
     }
 
     function closeModal() {
@@ -421,45 +168,29 @@
       document.getElementById('modal-overlay').style.display = 'block';
       document.getElementById('settings-modal').style.display = 'block';
 
-      const apiSource = localStorage.getItem('api_source') || 'lufop';
-      document.getElementById('api-source').value = apiSource;
+      document.getElementById('api-source').value = localStorage.getItem('api_source') || 'lufop';
+      document.getElementById('access-method').value = localStorage.getItem('access_method') || 'proxy';
+      document.getElementById('api-key-input').value = localStorage.getItem('lufop_api_key') || '';
+      document.getElementById('radar-count').value = localStorage.getItem('radar_count') || '5000';
+      document.getElementById('limit-france').checked = localStorage.getItem('limit_france') !== 'false';
+      document.getElementById('use-radius').checked = localStorage.getItem('use_radius') === 'true';
+      document.getElementById('radius-km').value = localStorage.getItem('radius_km') || '1000';
+      document.getElementById('zoom-level').value = localStorage.getItem('zoom_level') || '8';
 
-      const accessMethod = localStorage.getItem('access_method') || 'proxy';
-      document.getElementById('access-method').value = accessMethod;
-
-      const currentKey = localStorage.getItem('lufop_api_key');
-      if (currentKey) {
-        document.getElementById('api-key-input').value = currentKey;
-      }
-
-      const radarCount = localStorage.getItem('radar_count') || '5000';
-      document.getElementById('radar-count').value = radarCount;
-
-      const limitFrance = localStorage.getItem('limit_france') !== 'false';
-      document.getElementById('limit-france').checked = limitFrance;
-
-      const useRadius = localStorage.getItem('use_radius') === 'true';
-      document.getElementById('use-radius').checked = useRadius;
-
-      const radiusKm = localStorage.getItem('radius_km') || '1000';
-      document.getElementById('radius-km').value = radiusKm;
-
-      if (useRadius) {
+      if (document.getElementById('use-radius').checked) {
         document.getElementById('radius-group').classList.remove('disabled');
       }
 
-      updateBlitzerWarning();
+      document.getElementById('blitzer-warning').style.display = 
+        document.getElementById('api-source').value === 'blitzer' ? 'block' : 'none';
     }
 
-    function updateBlitzerWarning() {
-      const apiSource = document.getElementById('api-source').value;
-      const warning = document.getElementById('blitzer-warning');
-      warning.style.display = apiSource === 'blitzer' ? 'block' : 'none';
-    }
+    document.getElementById('api-source').addEventListener('change', () => {
+      document.getElementById('blitzer-warning').style.display = 
+        document.getElementById('api-source').value === 'blitzer' ? 'block' : 'none';
+    });
 
-    document.getElementById('api-source').addEventListener('change', updateBlitzerWarning);
-
-    function clearApiKey() {
+    function clearCache() {
       if (confirm('Effacer le cache ?')) {
         localStorage.removeItem('radars_cache');
         localStorage.removeItem('radars_date');
@@ -477,331 +208,178 @@
     function beep(freq = 1000, duration = 200) {
       try {
         initAudio();
-        const oscillator = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
-        oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
-        oscillator.frequency.value = freq;
-        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-        oscillator.start();
-        setTimeout(() => oscillator.stop(), duration);
+        const osc = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        osc.connect(gain);
+        gain.connect(audioContext.destination);
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.3, audioContext.currentTime);
+        osc.start();
+        setTimeout(() => osc.stop(), duration);
       } catch(e) {}
     }
 
     function haversine(lat1, lon1, lat2, lon2) {
       const R = 6371e3;
-      const φ1 = lat1 * Math.PI / 180;
-      const φ2 = lat2 * Math.PI / 180;
-      const Δφ = (lat2 - lat1) * Math.PI / 180;
-      const Δλ = (lon2 - lon1) * Math.PI / 180;
-      const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
-                Math.cos(φ1) * Math.cos(φ2) *
-                Math.sin(Δλ/2) * Math.sin(Δλ/2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-      return R * c;
+      const φ1 = lat1 * Math.PI / 180, φ2 = lat2 * Math.PI / 180;
+      const Δφ = (lat2 - lat1) * Math.PI / 180, Δλ = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ/2) * Math.sin(Δλ/2);
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     }
 
     function bearing(lat1, lon1, lat2, lon2) {
-      const φ1 = lat1 * Math.PI / 180;
-      const φ2 = lat2 * Math.PI / 180;
+      const φ1 = lat1 * Math.PI / 180, φ2 = lat2 * Math.PI / 180;
       const Δλ = (lon2 - lon1) * Math.PI / 180;
-      const y = Math.sin(Δλ) * Math.cos(φ2);
-      const x = Math.cos(φ1) * Math.sin(φ2) -
-                Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
-      const θ = Math.atan2(y, x);
+      const θ = Math.atan2(Math.sin(Δλ) * Math.cos(φ2), Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ));
       return (θ * 180 / Math.PI + 360) % 360;
     }
 
-    function isRelevantRadar(radar) {
+    function isRelevantRadar(r) {
       if (!currentPos) return false;
-      const dist = haversine(currentPos.latitude, currentPos.longitude, 
-                             radar.lat, radar.lon);
+      const dist = haversine(currentPos.latitude, currentPos.longitude, r.lat, r.lon);
       if (dist > 1000) return false;
-
-      const bear = bearing(currentPos.latitude, currentPos.longitude,
-                           radar.lat, radar.lon);
-      const azimut = parseFloat(radar.azimut || 0);
-      const diffAzimut = Math.min(Math.abs(bear - azimut), 
-                                   360 - Math.abs(bear - azimut));
-
-      if (diffAzimut > 45) return false;
-      if (radar.flash !== 'F' && radar.flash !== 'D') return false;
-      if (radar.position === 'L') return false;
-
-      return true;
+      const bear = bearing(currentPos.latitude, currentPos.longitude, r.lat, r.lon);
+      const azimut = parseFloat(r.azimut || 0);
+      const diffAz = Math.min(Math.abs(bear - azimut), 360 - Math.abs(bear - azimut));
+      return diffAz <= 45 && (r.flash === 'F' || r.flash === 'D') && r.position !== 'L';
     }
 
     async function updateRadars() {
       const apiSource = localStorage.getItem('api_source') || 'lufop';
-      const accessMethod = localStorage.getItem('access_method') || 'proxy';
-
       addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
-      addLog('🚀 CHARGEMENT RADARS', 'info');
-      addLog('API: ' + apiSource.toUpperCase(), 'info');
-      addLog('Méthode: ' + (accessMethod === 'proxy' ? 'Proxy' : 'Direct'), 'info');
+      addLog('🚀 CHARGEMENT ' + apiSource.toUpperCase(), 'info');
 
-      if (apiSource === 'lufop') {
-        await updateRadarsLufop();
-      } else {
-        await updateRadarsBlitzer();
-      }
+      if (apiSource === 'lufop') await updateLufop();
+      else await updateBlitzer();
     }
 
-    async function updateRadarsLufop() {
-      const apiKey = localStorage.getItem('lufop_api_key');
-      if (!apiKey) {
-        addLog('⚠️ Aucune clé API configurée', 'warning');
-        alert('⚠️ Configure ta clé API d\'abord (clique sur le bouton ?)');
-        openModal();
-        return;
+    async function updateLufop() {
+      const key = localStorage.getItem('lufop_api_key');
+      if (!key) { alert('Clé API requise'); openModal(); return; }
+
+      const nbr = localStorage.getItem('radar_count') || '5000';
+      const fr = localStorage.getItem('limit_france') !== 'false';
+      const useR = localStorage.getItem('use_radius') === 'true';
+      const km = localStorage.getItem('radius_km') || '1000';
+      const method = localStorage.getItem('access_method') || 'proxy';
+
+      let url = 'https://api.lufop.net/api?key=' + key + '&format=json&nbr=' + nbr;
+
+      if (fr && useR) {
+        if (!currentPos) { alert('GPS requis'); return; }
+        url += '&pays=fr&q=' + currentPos.latitude + ',' + currentPos.longitude + '&m=' + km;
+      } else if (useR) {
+        if (!currentPos) { alert('GPS requis'); return; }
+        url += '&q=' + currentPos.latitude + ',' + currentPos.longitude + '&m=' + km;
+      } else if (fr) {
+        url += '&pays=fr';
       }
 
-      const radarCount = localStorage.getItem('radar_count') || '5000';
-      const limitFrance = localStorage.getItem('limit_france') !== 'false';
-      const useRadius = localStorage.getItem('use_radius') === 'true';
-      const radiusKm = localStorage.getItem('radius_km') || '1000';
-      const accessMethod = localStorage.getItem('access_method') || 'proxy';
-
-      let apiUrl = `https://api.lufop.net/api?key=${apiKey}&format=json&nbr=${radarCount}`;
-      let modeDescription = '';
-
-      if (limitFrance && useRadius) {
-        if (!currentPos) {
-          addLog('❌ Position GPS non disponible', 'error');
-          alert('❌ Position GPS requise pour le mode rayon.');
-          return;
-        }
-        apiUrl += `&pays=fr&q=${currentPos.latitude},${currentPos.longitude}&m=${radiusKm}`;
-        modeDescription = `🇫🇷 France + 📍 Rayon ${radiusKm}km`;
-        addLog('Mode: France + rayon ' + radiusKm + ' km', 'info');
-
-      } else if (useRadius) {
-        if (!currentPos) {
-          addLog('❌ Position GPS non disponible', 'error');
-          alert('❌ Position GPS requise pour le mode rayon.');
-          return;
-        }
-        apiUrl += `&q=${currentPos.latitude},${currentPos.longitude}&m=${radiusKm}`;
-        modeDescription = `🌍 Monde + 📍 Rayon ${radiusKm}km`;
-        addLog('Mode: Rayon ' + radiusKm + ' km (tous pays)', 'info');
-
-      } else if (limitFrance) {
-        apiUrl += '&pays=fr';
-        modeDescription = '🇫🇷 France uniquement';
-        addLog('Mode: France uniquement', 'info');
-
-      } else {
-        modeDescription = '🌍 Monde entier';
-        addLog('Mode: Monde entier', 'info');
-      }
-
-      const url = accessMethod === 'proxy' 
-        ? `https://api.allorigins.win/raw?url=${encodeURIComponent(apiUrl)}`
-        : apiUrl;
-
-      if (currentPos) {
-        addLog(`Position: ${currentPos.latitude.toFixed(4)}, ${currentPos.longitude.toFixed(4)}`, 'info');
-      }
-      addLog('URL: ' + apiUrl, 'info');
+      const finalUrl = method === 'proxy' ? 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url) : url;
 
       try {
-        addLog('📡 Envoi requête...', 'info');
-
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 45000);
-
-        const response = await fetch(url, {
-          method: 'GET',
-          signal: controller.signal
-        });
-
-        clearTimeout(timeoutId);
-
-        addLog('✅ Réponse reçue!', 'success');
-        addLog('Status: ' + response.status, 'success');
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-
-        const text = await response.text();
-        addLog('Taille: ' + Math.round(text.length / 1024) + ' Ko', 'info');
-
-        const data = JSON.parse(text);
-        addLog('✅ JSON valide', 'success');
-        addLog('📊 Radars reçus: ' + data.length, 'success');
-
-        radars = data.map(r => ({
-          lat: parseFloat(r.latitude),
-          lon: parseFloat(r.longitude),
-          speed: parseInt(r.vitesse || 50),
-          flash: r.flash || 'D',
-          position: r.position || 'C',
-          azimut: parseFloat(r.azimut || 0)
+        addLog('📡 Requête...', 'info');
+        const r = await fetch(finalUrl);
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        const data = await r.json();
+        addLog('📊 Reçus: ' + data.length, 'success');
+        radars = data.map(x => ({
+          lat: parseFloat(x.latitude), lon: parseFloat(x.longitude),
+          speed: parseInt(x.vitesse || 50), flash: x.flash || 'D',
+          position: x.position || 'C', azimut: parseFloat(x.azimut || 0)
         }));
-
         localStorage.setItem('radars_cache', JSON.stringify(radars));
         localStorage.setItem('radars_date', new Date().toISOString());
         updateStatusButton();
-
-        addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'success');
         addLog('🎉 SUCCÈS! ' + radars.length + ' radars', 'success');
-        addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'success');
-
-        alert('✅ ' + radars.length + ' radars chargés!\n' + modeDescription);
-
-      } catch (e) {
-        addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'error');
+        alert('✅ ' + radars.length + ' radars chargés!');
+      } catch(e) {
         addLog('💥 ERREUR: ' + e.message, 'error');
-        addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'error');
-        alert('❌ Erreur: ' + e.message);
+        alert('❌ ' + e.message);
       }
     }
 
-    async function updateRadarsBlitzer() {
-      if (!currentPos) {
-        addLog('❌ Position GPS non disponible', 'error');
-        alert('❌ Blitzer.de nécessite ta position GPS');
-        return;
-      }
+    async function updateBlitzer() {
+      if (!currentPos) { alert('GPS requis'); return; }
 
-      const radarCount = localStorage.getItem('radar_count') || '5000';
-      const radiusKm = localStorage.getItem('radius_km') || '1000';
-      const useRadius = localStorage.getItem('use_radius') === 'true';
-      const accessMethod = localStorage.getItem('access_method') || 'proxy';
+      const km = parseFloat(localStorage.getItem('radius_km') || '1000');
+      const zoom = parseInt(localStorage.getItem('zoom_level') || '8');
+      const method = localStorage.getItem('access_method') || 'proxy';
 
-      const radius = useRadius ? parseFloat(radiusKm) : 1000;
-      const radiusDeg = radius / 111; // approximation 1° ≈ 111 km
+      const deg = km / 111;
+      const lat = currentPos.latitude, lon = currentPos.longitude;
+      const latMin = Math.max(-90, lat - deg);
+      const latMax = Math.min(90, lat + deg);
+      const lonMin = Math.max(-180, lon - deg);
+      const lonMax = Math.min(180, lon + deg);
+      const box = latMin + ',' + lonMin + ',' + latMax + ',' + lonMax;
 
-      const lat = currentPos.latitude;
-      const lon = currentPos.longitude;
-      const box = `${lat-radiusDeg},${lon-radiusDeg},${lat+radiusDeg},${lon+radiusDeg}`;
+      const url = 'https://cdn2.atudo.net/api/4.0/pois.php?z=' + zoom + '&type=0,1,2,3,4,5,6,101,102,103&box=' + box;
+      const finalUrl = method === 'proxy' ? 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url) : url;
 
-      const apiUrl = `https://cdn2.atudo.net/api/4.0/pois.php?z=5&type=0,1,2,3,4,5,6,101,102,103&box=${box}`;
-
-      const url = accessMethod === 'proxy' 
-        ? `https://api.allorigins.win/raw?url=${encodeURIComponent(apiUrl)}`
-        : apiUrl;
-
-      addLog('Mode: Blitzer.de rayon ' + radius + ' km', 'warning');
-      addLog(`Position: ${lat.toFixed(4)}, ${lon.toFixed(4)}`, 'info');
+      addLog('Rayon: ' + km + ' km, Zoom: ' + zoom, 'warning');
       addLog('Box: ' + box, 'info');
 
       try {
-        addLog('📡 Envoi requête Blitzer.de...', 'info');
-
-        const response = await fetch(url);
-
-        addLog('✅ Réponse reçue!', 'success');
-        addLog('Status: ' + response.status, 'success');
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-
-        const text = await response.text();
-        addLog('Taille: ' + Math.round(text.length / 1024) + ' Ko', 'info');
-
-        const data = JSON.parse(text);
-        addLog('✅ JSON valide', 'success');
-
-        let poisArray = [];
-        if (data.pois && typeof data.pois === 'object') {
-          poisArray = Object.values(data.pois);
-        } else if (Array.isArray(data)) {
-          poisArray = data;
-        }
-
-        addLog('📊 Radars reçus: ' + poisArray.length, 'success');
-
-        radars = poisArray.slice(0, parseInt(radarCount)).map(r => ({
-          lat: parseFloat(r.lat || r.latitude || 0),
-          lon: parseFloat(r.lng || r.lon || r.longitude || 0),
-          speed: parseInt(r.speed || r.vmax || 50),
-          flash: 'D',
-          position: 'C',
-          azimut: 0
+        addLog('📡 Blitzer...', 'info');
+        const r = await fetch(finalUrl);
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        const data = await r.json();
+        const pois = data.pois ? Object.values(data.pois) : (Array.isArray(data) ? data : []);
+        addLog('📊 Reçus: ' + pois.length, 'success');
+        radars = pois.slice(0, parseInt(localStorage.getItem('radar_count') || '5000')).map(x => ({
+          lat: parseFloat(x.lat || x.latitude || 0),
+          lon: parseFloat(x.lng || x.lon || x.longitude || 0),
+          speed: parseInt(x.speed || x.vmax || 50),
+          flash: 'D', position: 'C', azimut: 0
         }));
-
         localStorage.setItem('radars_cache', JSON.stringify(radars));
         localStorage.setItem('radars_date', new Date().toISOString());
         updateStatusButton();
-
-        addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'success');
         addLog('🎉 SUCCÈS! ' + radars.length + ' radars', 'success');
-        addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'success');
-
-        alert('✅ ' + radars.length + ' radars chargés (Blitzer.de)!');
-
-      } catch (e) {
-        addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'error');
-        addLog('💥 ERREUR Blitzer: ' + e.message, 'error');
-        addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'error');
-        alert('❌ Erreur Blitzer.de: ' + e.message);
+        alert('✅ ' + radars.length + ' radars (Blitzer)!');
+      } catch(e) {
+        addLog('💥 ERREUR: ' + e.message, 'error');
+        alert('❌ ' + e.message);
       }
     }
 
     function updateStatusButton() {
-      const lastUpdate = localStorage.getItem('radars_date');
+      const date = localStorage.getItem('radars_date');
       const btn = document.getElementById('status-btn');
-
-      if (!lastUpdate) {
-        btn.className = 'status-red';
-        btn.textContent = 'Pas de base';
-        return;
-      }
-
-      const daysDiff = (Date.now() - new Date(lastUpdate)) / (1000 * 60 * 60 * 24);
-      if (daysDiff < 1) {
-        btn.className = 'status-green';
-        btn.textContent = 'À jour';
-      } else if (daysDiff < 30) {
-        btn.className = 'status-orange';
-        btn.textContent = `MAJ: ${Math.floor(daysDiff)}j`;
-      } else {
-        btn.className = 'status-red';
-        btn.textContent = `MAJ: ${Math.floor(daysDiff)}j`;
-      }
+      if (!date) { btn.className = 'status-red'; btn.textContent = 'Pas de base'; return; }
+      const days = (Date.now() - new Date(date)) / 86400000;
+      if (days < 1) { btn.className = 'status-green'; btn.textContent = 'À jour'; }
+      else if (days < 30) { btn.className = 'status-orange'; btn.textContent = 'MAJ: ' + Math.floor(days) + 'j'; }
+      else { btn.className = 'status-red'; btn.textContent = 'MAJ: ' + Math.floor(days) + 'j'; }
     }
 
     function saveSettings() {
-      const apiSource = document.getElementById('api-source').value;
-      const accessMethod = document.getElementById('access-method').value;
+      const api = document.getElementById('api-source').value;
+      const method = document.getElementById('access-method').value;
       const key = document.getElementById('api-key-input').value.trim();
-      const radarCount = document.getElementById('radar-count').value;
-      const limitFrance = document.getElementById('limit-france').checked;
-      const useRadius = document.getElementById('use-radius').checked;
-      const radiusKm = document.getElementById('radius-km').value;
+      const nbr = document.getElementById('radar-count').value;
+      const fr = document.getElementById('limit-france').checked;
+      const useR = document.getElementById('use-radius').checked;
+      const km = document.getElementById('radius-km').value;
+      const zoom = document.getElementById('zoom-level').value;
 
-      if (apiSource === 'lufop' && !key) {
-        addLog('❌ Clé API requise pour Lufop!', 'error');
-        alert('❌ Entre une clé API Lufop valide');
-        return;
-      }
+      if (api === 'lufop' && !key) { alert('Clé requise'); return; }
+      if (!nbr || nbr < 100 || nbr > 25000) { alert('Nombre invalide'); return; }
 
-      if (!radarCount || radarCount < 100 || radarCount > 25000) {
-        addLog('❌ Nombre invalide!', 'error');
-        alert('❌ Entre un nombre entre 100 et 25000');
-        return;
-      }
+      addLog('💾 Sauvegarde...', 'info');
+      addLog('API: ' + api + ', Zoom: ' + zoom, 'info');
 
-      addLog('💾 Enregistrement paramètres...', 'info');
-      addLog('API: ' + apiSource, 'info');
-      addLog('Méthode: ' + accessMethod, 'info');
-      addLog('Radars max: ' + radarCount, 'info');
-      addLog('France: ' + (limitFrance ? 'Oui' : 'Non'), 'info');
-      addLog('Rayon: ' + (useRadius ? radiusKm + ' km' : 'Non'), 'info');
-
-      localStorage.setItem('api_source', apiSource);
-      localStorage.setItem('access_method', accessMethod);
+      localStorage.setItem('api_source', api);
+      localStorage.setItem('access_method', method);
       localStorage.setItem('lufop_api_key', key);
-      localStorage.setItem('radar_count', radarCount);
-      localStorage.setItem('limit_france', limitFrance);
-      localStorage.setItem('use_radius', useRadius);
-      localStorage.setItem('radius_km', radiusKm);
+      localStorage.setItem('radar_count', nbr);
+      localStorage.setItem('limit_france', fr);
+      localStorage.setItem('use_radius', useR);
+      localStorage.setItem('radius_km', km);
+      localStorage.setItem('zoom_level', zoom);
 
-      addLog('✅ Paramètres sauvegardés', 'success');
-
+      addLog('✅ Sauvegardé', 'success');
       updateRadars();
     }
 
@@ -812,42 +390,26 @@
 
       document.getElementById('speed-value').textContent = Math.round(currentSpeed);
 
-      const relevant = radars.filter(isRelevantRadar)
-        .map(r => ({
-          ...r,
-          distance: haversine(currentPos.latitude, currentPos.longitude, r.lat, r.lon)
-        }))
-        .sort((a, b) => a.distance - b.distance);
+      const rel = radars.filter(isRelevantRadar).map(r => ({
+        ...r, distance: haversine(currentPos.latitude, currentPos.longitude, r.lat, r.lon)
+      })).sort((a, b) => a.distance - b.distance);
 
-      if (relevant.length > 0 && relevant[0].distance < 500) {
-        const radar = relevant[0];
+      if (rel.length > 0 && rel[0].distance < 500) {
+        const radar = rel[0];
         activeRadar = radar;
-
         document.getElementById('radar-panel').style.display = 'block';
         document.getElementById('radar-limit').textContent = radar.speed;
-        document.getElementById('radar-distance').textContent = `${Math.round(radar.distance)}m`;
+        document.getElementById('radar-distance').textContent = Math.round(radar.distance) + 'm';
 
-        if (currentSpeed <= radar.speed + 1) {
-          document.body.className = 'bg-green';
-        } else if (currentSpeed <= radar.speed + 4) {
-          document.body.className = 'bg-orange';
-        } else {
-          document.body.className = 'bg-red';
-        }
+        if (currentSpeed <= radar.speed + 1) document.body.className = 'bg-green';
+        else if (currentSpeed <= radar.speed + 4) document.body.className = 'bg-orange';
+        else document.body.className = 'bg-red';
 
         const now = Date.now();
-        if (radar.distance < 500 && lastBeepTime === 0) {
-          beep(1500, 300);
-          lastBeepTime = now;
-        }
-        if (currentSpeed > radar.speed + 4 && now - lastBeepTime > 2000) {
-          beep(2000, 200);
-          lastBeepTime = now;
-        }
+        if (radar.distance < 500 && lastBeepTime === 0) { beep(1500, 300); lastBeepTime = now; }
+        if (currentSpeed > radar.speed + 4 && now - lastBeepTime > 2000) { beep(2000, 200); lastBeepTime = now; }
 
-        const gaugeProgress = Math.max(0, Math.min(100, ((500 - radar.distance) / 550) * 100));
-        document.getElementById('gauge-fill').style.width = gaugeProgress + '%';
-
+        document.getElementById('gauge-fill').style.width = Math.max(0, Math.min(100, ((500 - radar.distance) / 550) * 100)) + '%';
       } else {
         activeRadar = null;
         document.getElementById('radar-panel').style.display = 'none';
@@ -858,20 +420,15 @@
     }, null, { enableHighAccuracy: true, maximumAge: 1000 });
 
     window.onload = () => {
-      addLog('🚀 App Multi-API démarrée', 'success');
+      addLog('🚀 App Multi-API + Zoom démarrée', 'success');
       const cached = localStorage.getItem('radars_cache');
       if (cached) {
         try {
           radars = JSON.parse(cached);
-          addLog('📦 ' + radars.length + ' radars en cache', 'success');
-        } catch(e) {
-          addLog('❌ Cache corrompu', 'error');
-        }
+          addLog('📦 ' + radars.length + ' en cache', 'success');
+        } catch(e) {}
       }
       updateStatusButton();
-
-      const apiSource = localStorage.getItem('api_source') || 'lufop';
-      addLog('API configurée: ' + apiSource.toUpperCase(), 'info');
     };
   </script>
 
