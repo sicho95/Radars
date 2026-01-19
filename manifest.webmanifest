@@ -1,0 +1,24 @@
+{
+  "name": "Radar Detector",
+  "short_name": "Radars",
+  "description": "Détecteur de radars en temps réel avec alertes vocales",
+  "start_url": "/Radars/",
+  "display": "standalone",
+  "background_color": "#121212",
+  "theme_color": "#2196F3",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/Radars/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/Radars/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
