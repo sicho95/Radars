@@ -760,7 +760,7 @@
       return true;
     }
 
-    async function fetchData(url, proxyName, timeout = 120000) {
+    async function fetchData(url, proxyName, timeout = 180000) {
       const proxyFn = PROXIES[proxyName];
       if (!proxyFn) throw new Error('Proxy inconnu: ' + proxyName);
 
