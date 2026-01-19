@@ -1,35 +1,22 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-      <link rel="manifest" href="manifest.webmanifest">
-      <meta name="theme-color" content="#2196F3">
-      <link rel="apple-touch-icon" href="icons/icon-192.png">
-      <meta name="apple-mobile-web-app-capable" content="yes">
-
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#2196F3" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
   <title>Damien Radar Alert</title>
+
   <style>
-    * { 
-      margin: 0; 
-      padding: 0; 
-      box-sizing: border-box;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    html, body {
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      position: fixed;
-    }
-
-    body { 
-      background: #000; 
-      color: #fff; 
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { width: 100%; height: 100%; overflow: hidden; position: fixed; }
+    body {
+      background: #000;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
       transition: background 0.3s;
       touch-action: none;
     }
@@ -42,8 +29,7 @@
       gap: clamp(6px, 2vw, 10px);
       z-index: 1000;
     }
-
-    #status-btn {
+    .status-btn {
       padding: clamp(8px, 2vw, 12px) clamp(12px, 3vw, 18px);
       border: 2px solid #fff;
       border-radius: clamp(6px, 2vw, 10px);
@@ -52,6 +38,7 @@
       font-weight: bold;
       white-space: nowrap;
       box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+      user-select: none;
     }
     .status-green { background: #0a0; color: #fff; }
     .status-orange { background: #f80; color: #000; }
@@ -71,11 +58,9 @@
       align-items: center;
       justify-content: center;
       box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+      user-select: none;
     }
-    #settings-btn:active, #debug-btn:active { 
-      background: #0ff; 
-      color: #000; 
-    }
+    #settings-btn:active, #debug-btn:active { background: #0ff; color: #000; }
 
     #speed-display {
       position: fixed;
@@ -86,15 +71,10 @@
       font-weight: bold;
       text-shadow: 0 0 20px currentColor;
       line-height: 1;
+      user-select: none;
     }
-    #speed-value {
-      font-size: clamp(100px, 25vw, 180px);
-      display: block;
-    }
-    #speed-unit { 
-      font-size: clamp(30px, 7vw, 50px);
-      margin-left: 5px;
-    }
+    #speed-value { font-size: clamp(100px, 25vw, 180px); display: block; }
+    #speed-unit { font-size: clamp(30px, 7vw, 50px); margin-left: 5px; }
 
     #radar-panel {
       position: fixed;
@@ -111,6 +91,7 @@
       align-items: center;
       justify-content: center;
       text-align: center;
+      user-select: none;
     }
     #radar-limit {
       font-size: clamp(32px, 10vw, 48px);
@@ -137,6 +118,7 @@
       border-radius: clamp(5px, 1.5vw, 8px);
       overflow: visible;
       box-shadow: 0 2px 15px rgba(0,0,0,0.5);
+      user-select: none;
     }
     #gauge-fill {
       height: 100%;
@@ -157,7 +139,6 @@
       z-index: 1999;
       display: none;
     }
-
     #settings-modal {
       position: fixed;
       top: 5%;
@@ -171,15 +152,10 @@
       z-index: 2000;
       display: none;
       overflow: hidden;
-      display: flex;
       flex-direction: column;
     }
 
-    #tab-container {
-      display: flex;
-      border-bottom: 2px solid #0ff;
-      background: #000;
-    }
+    #tab-container { display: flex; border-bottom: 2px solid #0ff; background: #000; }
     .tab-button {
       flex: 1;
       padding: clamp(12px, 3vh, 16px);
@@ -191,18 +167,11 @@
       cursor: pointer;
       border-bottom: 3px solid transparent;
       transition: all 0.3s;
+      user-select: none;
     }
-    .tab-button.active {
-      background: #111;
-      color: #0ff;
-      border-bottom-color: #0ff;
-    }
-    .tab-button:first-child {
-      border-radius: clamp(8px, 2vw, 15px) 0 0 0;
-    }
-    .tab-button:last-child {
-      border-radius: 0 clamp(8px, 2vw, 15px) 0 0;
-    }
+    .tab-button.active { background: #111; color: #0ff; border-bottom-color: #0ff; }
+    .tab-button:first-child { border-radius: clamp(8px, 2vw, 15px) 0 0 0; }
+    .tab-button:last-child { border-radius: 0 clamp(8px, 2vw, 15px) 0 0; }
 
     .tab-content {
       flex: 1;
@@ -211,9 +180,7 @@
       padding: clamp(12px, 3vw, 20px);
       display: none;
     }
-    .tab-content.active {
-      display: block;
-    }
+    .tab-content.active { display: block; }
 
     #settings-modal h3 {
       color: #0ff;
@@ -222,13 +189,11 @@
       border-bottom: 2px solid #0ff;
       padding-bottom: clamp(8px, 2vh, 12px);
     }
-
     #settings-modal h4 {
       color: #ff0;
       font-size: clamp(14px, 3.5vw, 18px);
       margin: clamp(12px, 3vh, 18px) 0 clamp(6px, 1.5vh, 10px) 0;
     }
-
     #settings-modal label {
       display: block;
       color: #aaa;
@@ -236,7 +201,6 @@
       margin-bottom: 5px;
       line-height: 1.4;
     }
-
     #settings-modal input[type="text"],
     #settings-modal input[type="number"],
     #settings-modal select {
@@ -249,7 +213,6 @@
       font-size: clamp(14px, 3.5vw, 18px);
       border-radius: clamp(5px, 1.5vw, 8px);
     }
-
     #settings-modal button {
       width: 100%;
       padding: clamp(12px, 3vw, 16px);
@@ -260,6 +223,7 @@
       border-radius: clamp(5px, 1.5vw, 8px);
       margin: clamp(5px, 1.5vh, 8px) 0;
       font-weight: bold;
+      user-select: none;
     }
 
     .checkbox-container {
@@ -272,6 +236,7 @@
       border-radius: clamp(5px, 1.5vw, 8px);
       margin-bottom: clamp(8px, 2vh, 12px);
       cursor: pointer;
+      user-select: none;
     }
     .checkbox-container input[type="checkbox"] {
       width: clamp(18px, 4vw, 24px);
@@ -293,14 +258,11 @@
       border-radius: clamp(5px, 1.5vw, 8px);
       margin-bottom: clamp(8px, 2vh, 12px);
     }
-    .radius-group.disabled {
-      opacity: 0.5;
-      pointer-events: none;
-    }
+    .radius-group.disabled { opacity: 0.5; pointer-events: none; }
 
-    #btn-validate { background: #0a0; }
-    #btn-clear { background: #f80; }
-    #btn-close { background: #666; }
+    .btn-validate { background: #0a0; }
+    .btn-clear { background: #f80; }
+    .btn-close { background: #666; }
 
     .info-box {
       background: #222;
@@ -310,14 +272,11 @@
       font-size: clamp(11px, 2.8vw, 14px);
       line-height: 1.5;
       border-radius: clamp(3px, 1vw, 5px);
+      user-select: none;
     }
     .info-box.warning { border-left-color: #ff0; }
     .info-box.success { border-left-color: #0f0; }
     .info-box.danger { border-left-color: #f00; }
-
-    #worker-url-container {
-      display: none;
-    }
 
     #debug-info {
       position: fixed;
@@ -327,16 +286,14 @@
       padding: clamp(8px, 2vw, 12px);
       border: 2px solid #0ff;
       border-radius: clamp(5px, 1.5vw, 8px);
-      font-family: 'Courier New', monospace;
+      font-family: "Courier New", monospace;
       font-size: clamp(10px, 2.5vw, 13px);
       display: none;
       z-index: 999;
       box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+      user-select: none;
     }
-    #debug-info div {
-      margin: clamp(2px, 0.5vh, 4px) 0;
-      white-space: nowrap;
-    }
+    #debug-info div { margin: clamp(2px, 0.5vh, 4px) 0; white-space: nowrap; }
 
     #debug-log {
       background: #000;
@@ -347,16 +304,13 @@
       max-height: 60vh;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
-      font-family: 'Courier New', monospace;
+      font-family: "Courier New", monospace;
       font-size: clamp(10px, 2.5vw, 12px);
       text-align: left;
       line-height: 1.5;
+      user-select: text;
     }
-    .log-entry {
-      margin: 3px 0;
-      padding: 3px 0;
-      border-bottom: 1px solid #222;
-    }
+    .log-entry { margin: 3px 0; padding: 3px 0; border-bottom: 1px solid #222; }
     .log-info { color: #0ff; }
     .log-success { color: #0f0; }
     .log-warning { color: #ff0; }
@@ -364,40 +318,22 @@
     .log-time { color: #888; font-size: 10px; margin-right: 5px; }
 
     @media (orientation: landscape) {
-      #speed-value {
-        font-size: clamp(80px, 18vh, 140px);
-      }
-      #speed-unit {
-        font-size: clamp(25px, 5vh, 40px);
-      }
+      #speed-value { font-size: clamp(80px, 18vh, 140px); }
+      #speed-unit { font-size: clamp(25px, 5vh, 40px); }
     }
-
     @media (max-width: 375px) {
-      #top-controls {
-        gap: 5px;
-      }
-      #status-btn {
-        font-size: 11px;
-        padding: 6px 10px;
-      }
-      #debug-info {
-        font-size: 9px;
-      }
+      #top-controls { gap: 5px; }
+      .status-btn { font-size: 11px; padding: 6px 10px; }
+      #debug-info { font-size: 9px; }
     }
-
     @media (min-width: 768px) {
-      #speed-value {
-        font-size: clamp(120px, 20vw, 200px);
-      }
-      #gauge-container {
-        left: 10vw;
-        right: 10vw;
-      }
+      #speed-value { font-size: clamp(120px, 20vw, 200px); }
+      #gauge-container { left: 10vw; right: 10vw; }
     }
   </style>
 </head>
-<body>
 
+<body>
   <div id="modal-overlay"></div>
 
   <div id="settings-modal">
@@ -416,81 +352,69 @@
       </select>
 
       <div class="info-box danger" id="blitzer-warning" style="display:none">
-        ⚠️ <b>Blitzer.de non officielle</b> - peut cesser de fonctionner à tout moment
+        <b>Blitzer.de non officielle</b> - peut cesser de fonctionner à tout moment
       </div>
-
-      <h4>🔑 Clé API (Lufop uniquement)</h4>
-      <input type="text" id="api-key" placeholder="Clé API Lufop (32 caractères)">
 
       <h4>🌐 Mode de connexion</h4>
-      <select id="cors-proxy" onchange="toggleWorkerUrl()">
-        <option value="worker" selected>🚀 Cloudflare Worker (RECOMMANDÉ)</option>
-        <option value="direct">📡 Direct (sans proxy)</option>
-        <option value="allorigins">AllOrigins (limite 1 Mo)</option>
-        <option value="corsproxy">CorsProxy.io (limite 1 Mo)</option>
+      <select id="cors-proxy">
+        <option value="direct" selected>📡 Direct (sans proxy)</option>
+        <option value="proxy">🛡️ Proxy CORS personnel (Sicho95)</option>
       </select>
 
-      <div id="worker-url-container">
-        <label>URL de ton Cloudflare Worker</label>
-        <input type="text" id="worker-url" placeholder="https://radar-proxy.ton-username.workers.dev">
-      </div>
-
-      <div class="info-box success">
-        ✅ <b>Cloudflare Worker :</b><br>
-        • Pas de limite CORS<br>
-        • Pas de limite de taille (charge 25000 radars!)<br>
-        • Ultra-rapide (edge network mondial)<br>
-        • 3M requêtes/mois gratuit à vie
+      <div class="info-box warning">
+        <b>Conseil :</b><br />
+        • L’app teste d’abord <b>Direct</b>.<br />
+        • En cas d’erreur réseau/CORS, bascule automatiquement sur <b>Proxy CORS personnel (Sicho95)</b>.<br />
+        • Cache: géré <b>côté proxy/worker</b> (10 min).
       </div>
 
       <h4>🌍 Zone géographique</h4>
-
       <div class="checkbox-container" onclick="document.getElementById('limit-france').click()">
-        <input type="checkbox" id="limit-france" checked onclick="event.stopPropagation()">
+        <input type="checkbox" id="limit-france" checked onclick="event.stopPropagation()" />
         <label for="limit-france">Limiter à la France</label>
       </div>
 
       <div class="checkbox-container" onclick="document.getElementById('use-radius').click()">
-        <input type="checkbox" id="use-radius" onclick="event.stopPropagation(); toggleRadius()">
+        <input type="checkbox" id="use-radius" onclick="event.stopPropagation(); toggleRadius();" />
         <label for="use-radius">Limiter par rayon</label>
       </div>
 
       <div class="radius-group disabled" id="radius-group">
         <label>Rayon en km (10-5000)</label>
-        <input type="number" id="radius-km" placeholder="1000" min="10" max="5000" value="1000">
+        <input type="number" id="radius-km" placeholder="1000" min="10" max="5000" value="1000" />
       </div>
 
       <h4>🔍 Zoom Blitzer.de (1=large, 15=détaillé)</h4>
-      <input type="number" id="zoom-level" placeholder="8" min="1" max="15" value="8">
+      <input type="number" id="zoom-level" placeholder="8" min="1" max="15" value="8" />
 
       <h4>📊 Nombre max de radars</h4>
-      <input type="number" id="radar-count" placeholder="5000" min="100" max="25000" value="5000">
+      <input type="number" id="radar-count" placeholder="5000" min="100" max="25000" value="5000" />
 
       <div class="info-box success">
-        ✅ <b>Zones d'alerte optimisées :</b><br>
-        • ≥130 km/h: 1000m avant / 300m après<br>
-        • ≥110 km/h: 800m / 200m<br>
-        • ≥90 km/h: 500m / 150m<br>
-        • ≥70 km/h: 350m / 100m<br>
-        • ≥50 km/h: 250m / 100m<br>
-        • <50 km/h: 100m / 80m
+        <b>Zones d'alerte optimisées :</b><br />
+        • ≥130 km/h: 1000m avant / 300m après<br />
+        • ≥110 km/h: 800m / 200m<br />
+        • ≥90 km/h: 500m / 150m<br />
+        • ≥70 km/h: 350m / 100m<br />
+        • ≥50 km/h: 250m / 100m<br />
+        • &lt;50 km/h: 100m / 80m
       </div>
 
-      <button id="btn-validate" onclick="saveSettings()">✓ VALIDER ET CHARGER</button>
-      <button id="btn-clear" onclick="clearData()">🗑️ EFFACER CACHE</button>
-      <button id="btn-close" onclick="closeModal()">✕ FERMER</button>
+      <button class="btn-validate" onclick="saveSettings()">✓ VALIDER ET CHARGER</button>
+      <button class="btn-clear" onclick="clearData()">🗑️ EFFACER CACHE</button>
+      <button class="btn-close" onclick="closeModal()">✕ FERMER</button>
     </div>
 
     <div id="tab-logs" class="tab-content">
       <h3>📋 Journal de débogage détaillé</h3>
       <div id="debug-log">
-        <div class="log-entry log-info"><span class="log-time">--:--:--</span> ℹ️ Application démarrée</div>
+        <div class="log-entry log-info"><span class="log-time">--:--:--</span>ℹ️ Application démarrée</div>
       </div>
     </div>
   </div>
 
   <div id="top-controls">
-    <div id="status-btn" class="status-red" onclick="saveSettings()">Pas de données</div>
+    <div id="status-btn" class="status-btn status-red" onclick="manualRefresh()">Pas de données</div>
     <div id="settings-btn" onclick="openModal()">⚙</div>
     <div id="debug-btn" onclick="toggleDebug()">?</div>
   </div>
@@ -499,16 +423,18 @@
     <div><b>📍 Position GPS</b></div>
     <div>Lat: <span id="dbg-lat">--</span></div>
     <div>Lon: <span id="dbg-lon">--</span></div>
-    <div>Alt: <span id="dbg-alt">--</span>m</div>
-    <div><b>🧭 Navigation</b></div>
-    <div>Heading: <span id="dbg-heading">--</span>°</div>
+    <div>Alt: <span id="dbg-alt">--</span> m</div>
+
+    <div style="margin-top:6px"><b>🧭 Navigation</b></div>
+    <div>Heading: <span id="dbg-heading">--</span></div>
     <div>Speed: <span id="dbg-speed">--</span> km/h</div>
-    <div>Accuracy: <span id="dbg-accuracy">--</span>m</div>
-    <div><b>📡 Données</b></div>
+    <div>Accuracy: <span id="dbg-accuracy">--</span> m</div>
+
+    <div style="margin-top:6px"><b>📡 Données</b></div>
     <div>Radars: <span id="dbg-radars">0</span></div>
     <div>Relevant: <span id="dbg-relevant">0</span></div>
-    <div>Angle: <span id="dbg-angle">--</span>°</div>
-    <div>GPS: <span id="dbg-refresh">--</span>ms</div>
+    <div>Angle: <span id="dbg-angle">--</span></div>
+    <div>GPS: <span id="dbg-refresh">--</span> ms</div>
   </div>
 
   <div id="speed-display">
@@ -525,6 +451,9 @@
   </div>
 
   <script>
+    // -----------------------------
+    // State
+    // -----------------------------
     let radars = [];
     let currentPos = null;
     let currentSpeed = 0;
@@ -537,37 +466,83 @@
     let gpsRefreshRate = 0;
     let currentTab = 'settings';
     let lastDistance = Infinity;
-    let detectionAngle = 120;
 
-    const PROXIES = {
-      worker: (url) => {
-        const workerUrl = localStorage.getItem('worker_url');
-        if (!workerUrl) {
-          throw new Error('URL Cloudflare Worker non configurée');
-        }
-        const params = new URL(url).search;
-        return workerUrl + params;
-      },
-      direct: (url) => url,
-      allorigins: (url) => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url),
-      corsproxy: (url) => 'https://corsproxy.io/?' + encodeURIComponent(url)
+    const APP_VERSION = '2.9';
+
+    const ORANGE_DAYS = 7;
+    const RED_DAYS = 30;
+
+    let autoRefreshRequested = false;
+    let autoRefreshDone = false;
+
+    // Wake Lock
+    let wakeLock = null;
+
+    const STORAGE = {
+      apisource: 'apisource',
+      corsproxy: 'corsproxy',
+      radarcount: 'radarcount',
+      limitfrance: 'limitfrance',
+      useradius: 'useradius',
+      radiuskm: 'radiuskm',
+      zoomlevel: 'zoomlevel',
+      radarscache: 'radarscache',
+      radarsdate: 'radarsdate'
     };
 
-    function toggleWorkerUrl() {
-      const proxy = document.getElementById('cors-proxy').value;
-      const container = document.getElementById('worker-url-container');
-      container.style.display = proxy === 'worker' ? 'block' : 'none';
+    const PROXIES = {
+      proxy: (url) => 'https://proxy.sicho95.workers.dev/?url=' + encodeURIComponent(url),
+      direct: (url) => url
+    };
+
+    // -----------------------------
+    // Wake lock (anti-veille)
+    // -----------------------------
+    async function requestWakeLock() {
+      try {
+        if (!('wakeLock' in navigator)) return;
+        if (document.visibilityState !== 'visible') return;
+        if (wakeLock) return;
+
+        wakeLock = await navigator.wakeLock.request('screen');
+        addLog('Wake Lock actif (anti-veille)', 'success');
+
+        wakeLock.addEventListener('release', () => {
+          wakeLock = null;
+          addLog('Wake Lock relâché', 'warning');
+        });
+      } catch (e) {
+        wakeLock = null;
+        addLog(`Wake Lock indisponible: ${e.message}`, 'warning');
+      }
     }
 
+    async function releaseWakeLock() {
+      try {
+        if (wakeLock) await wakeLock.release();
+      } catch {}
+      wakeLock = null;
+    }
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        requestWakeLock();
+      } else {
+        releaseWakeLock();
+      }
+    });
+
+    // Re-tente aussi sur geste utilisateur (certains navigateurs l’exigent)
+    document.addEventListener('click', () => requestWakeLock(), { passive: true });
+    document.addEventListener('touchstart', () => requestWakeLock(), { passive: true });
+
+    // -----------------------------
+    // UI helpers
+    // -----------------------------
     function switchTab(tabName) {
       currentTab = tabName;
-
-      document.querySelectorAll('.tab-button').forEach(btn => {
-        btn.classList.remove('active');
-      });
-      document.querySelectorAll('.tab-content').forEach(content => {
-        content.classList.remove('active');
-      });
+      document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
 
       if (tabName === 'settings') {
         document.querySelector('.tab-button:first-child').classList.add('active');
@@ -576,63 +551,33 @@
         document.querySelector('.tab-button:last-child').classList.add('active');
         document.getElementById('tab-logs').classList.add('active');
       }
-
-      addLog('Onglet ' + (tabName === 'settings' ? 'Paramètres' : 'Journal') + ' affiché', 'info');
+      addLog(`Onglet ${tabName === 'settings' ? 'Paramètres' : 'Journal'} affiché`, 'info');
     }
 
     function addLog(msg, type = 'info') {
-      console.log('[' + type + ']', msg);
+      console.log(type.toUpperCase(), msg);
       const log = document.getElementById('debug-log');
       if (!log) return;
-
       const time = new Date().toLocaleTimeString('fr-FR');
-      const logClass = 'log-' + type;
-      const icon = type === 'error' ? '❌' : type === 'success' ? '✅' : type === 'warning' ? '⚠️' : 'ℹ️';
-
+      const logClass = `log-${type}`;
+      const icon = type === 'error' ? '❌ ' : type === 'success' ? '✅ ' : type === 'warning' ? '⚠️ ' : 'ℹ️ ';
       const entry = document.createElement('div');
-      entry.className = 'log-entry ' + logClass;
-      entry.innerHTML = '<span class="log-time">' + time + '</span>' + icon + ' ' + msg;
-
+      entry.className = `log-entry ${logClass}`;
+      entry.innerHTML = `<span class="log-time">${time}</span>${icon}${msg}`;
       log.insertBefore(entry, log.firstChild);
-
-      while (log.children.length > 200) {
-        log.removeChild(log.lastChild);
-      }
+      while (log.children.length > 200) log.removeChild(log.lastChild);
     }
 
     function toggleDebug() {
       debugMode = !debugMode;
       document.getElementById('debug-info').style.display = debugMode ? 'block' : 'none';
-      if (debugMode) {
-        addLog('Mode debug activé', 'info');
-      }
+      if (debugMode) addLog('Mode debug activé', 'info');
     }
 
     function toggleRadius() {
       const checkbox = document.getElementById('use-radius');
       document.getElementById('radius-group').classList.toggle('disabled', !checkbox.checked);
-    }
-
-    // Zones d'alerte mises à jour
-    function getAlertZone(radarSpeed) {
-      // V2.7 - Zones d'alerte optimisées
-      if (radarSpeed >= 130) return { before: 1000, after: 300 };
-      if (radarSpeed >= 110) return { before: 800, after: 200 };
-      if (radarSpeed >= 90) return { before: 500, after: 150 };
-      if (radarSpeed >= 70) return { before: 350, after: 100 };
-      if (radarSpeed >= 50) return { before: 250, after: 100 };
-      return { before: 100, after: 80 };  // < 50 km/h
-    }
-
-    // Angle de détection adaptatif selon vitesse
-    function getDetectionAngle(speed) {
-      // V2.7 - Angles optimisés (théorie +50% marge GPS)
-      if (speed < 50) return 43;   // Ville
-      if (speed < 70) return 18;   // Route
-      if (speed < 90) return 13;   // Route large
-      if (speed < 110) return 9;   // Voie rapide
-      if (speed < 130) return 6;   // Autoroute
-      return 5;                     // Autoroute rapide ≥130 km/h
+      addLog('Zones d\'alerte mises à jour', 'info');
     }
 
     function closeModal() {
@@ -641,47 +586,50 @@
       addLog('Modal fermée', 'info');
     }
 
+    function normalizeProxyValue(v) {
+      if (v === 'proxy' || v === 'direct') return v;
+      if (v === 'worker' || v === 'allorigins' || v === 'corsproxy') return 'proxy';
+      return 'direct';
+    }
+
     function openModal() {
       document.getElementById('modal-overlay').style.display = 'block';
       document.getElementById('settings-modal').style.display = 'flex';
 
-      document.getElementById('api-source').value = localStorage.getItem('api_source') || 'lufop';
-      document.getElementById('cors-proxy').value = localStorage.getItem('cors_proxy') || 'worker';
-      document.getElementById('worker-url').value = localStorage.getItem('worker_url') || '';
-      document.getElementById('api-key').value = localStorage.getItem('lufop_key') || '';
-      document.getElementById('radar-count').value = localStorage.getItem('radar_count') || '5000';
-      document.getElementById('limit-france').checked = localStorage.getItem('limit_france') !== 'false';
-      document.getElementById('use-radius').checked = localStorage.getItem('use_radius') === 'true';
-      document.getElementById('radius-km').value = localStorage.getItem('radius_km') || '1000';
-      document.getElementById('zoom-level').value = localStorage.getItem('zoom_level') || '8';
+      document.getElementById('api-source').value = localStorage.getItem(STORAGE.apisource) || 'lufop';
+      document.getElementById('cors-proxy').value = normalizeProxyValue(localStorage.getItem(STORAGE.corsproxy) || 'direct');
 
-      toggleWorkerUrl();
+      document.getElementById('radar-count').value = localStorage.getItem(STORAGE.radarcount) || 5000;
+      document.getElementById('limit-france').checked = (localStorage.getItem(STORAGE.limitfrance) !== 'false');
+      document.getElementById('use-radius').checked = (localStorage.getItem(STORAGE.useradius) === 'true');
+      document.getElementById('radius-km').value = localStorage.getItem(STORAGE.radiuskm) || 1000;
+      document.getElementById('zoom-level').value = localStorage.getItem(STORAGE.zoomlevel) || 8;
 
-      if (document.getElementById('use-radius').checked) {
-        document.getElementById('radius-group').classList.remove('disabled');
-      }
+      if (document.getElementById('use-radius').checked) document.getElementById('radius-group').classList.remove('disabled');
 
-      document.getElementById('blitzer-warning').style.display = 
-        document.getElementById('api-source').value === 'blitzer' ? 'block' : 'none';
+      document.getElementById('blitzer-warning').style.display =
+        (document.getElementById('api-source').value === 'blitzer') ? 'block' : 'none';
 
       addLog('Modal ouverte', 'info');
     }
 
     document.getElementById('api-source').addEventListener('change', () => {
-      document.getElementById('blitzer-warning').style.display = 
-        document.getElementById('api-source').value === 'blitzer' ? 'block' : 'none';
+      document.getElementById('blitzer-warning').style.display =
+        (document.getElementById('api-source').value === 'blitzer') ? 'block' : 'none';
     });
 
     function clearData() {
-      if (confirm('Effacer toutes les données ?')) {
-        localStorage.clear();
-        radars = [];
-        updateStatusButton();
-        addLog('Cache et données effacés', 'success');
-        alert('✅ Données effacées');
-      }
+      if (!confirm('Effacer toutes les données ?')) return;
+      localStorage.clear();
+      radars = [];
+      updateStatusButton();
+      addLog('Cache et données effacés', 'success');
+      alert('Données effacées');
     }
 
+    // -----------------------------
+    // Audio
+    // -----------------------------
     function initAudio() {
       if (!audioContext) {
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -700,31 +648,50 @@
         gain.gain.setValueAtTime(0.3, audioContext.currentTime);
         osc.start();
         setTimeout(() => osc.stop(), duration);
-      } catch(e) {
-        addLog('Erreur audio: ' + e.message, 'error');
+      } catch (e) {
+        addLog(`Erreur audio: ${e.message}`, 'error');
       }
     }
 
+    // -----------------------------
+    // Math / radar logic
+    // -----------------------------
     function haversine(lat1, lon1, lat2, lon2) {
       const R = 6371e3;
-      const φ1 = lat1 * Math.PI / 180;
-      const φ2 = lat2 * Math.PI / 180;
-      const Δφ = (lat2 - lat1) * Math.PI / 180;
-      const Δλ = (lon2 - lon1) * Math.PI / 180;
-      const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
-                Math.cos(φ1) * Math.cos(φ2) *
-                Math.sin(Δλ/2) * Math.sin(Δλ/2);
-      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      const p1 = lat1 * Math.PI / 180;
+      const p2 = lat2 * Math.PI / 180;
+      const dlat = (lat2 - lat1) * Math.PI / 180;
+      const dlon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dlat / 2) ** 2 + Math.cos(p1) * Math.cos(p2) * Math.sin(dlon / 2) ** 2;
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     }
 
     function bearing(lat1, lon1, lat2, lon2) {
-      const φ1 = lat1 * Math.PI / 180;
-      const φ2 = lat2 * Math.PI / 180;
-      const Δλ = (lon2 - lon1) * Math.PI / 180;
-      const y = Math.sin(Δλ) * Math.cos(φ2);
-      const x = Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
-      const θ = Math.atan2(y, x);
-      return (θ * 180 / Math.PI + 360) % 360;
+      const p1 = lat1 * Math.PI / 180;
+      const p2 = lat2 * Math.PI / 180;
+      const dlon = (lon2 - lon1) * Math.PI / 180;
+      const y = Math.sin(dlon) * Math.cos(p2);
+      const x = Math.cos(p1) * Math.sin(p2) - Math.sin(p1) * Math.cos(p2) * Math.cos(dlon);
+      const brng = Math.atan2(y, x);
+      return (brng * 180 / Math.PI + 360) % 360;
+    }
+
+    function getAlertZone(radarSpeed) {
+      if (radarSpeed >= 130) return { before: 1000, after: 300 };
+      if (radarSpeed >= 110) return { before: 800, after: 200 };
+      if (radarSpeed >= 90) return { before: 500, after: 150 };
+      if (radarSpeed >= 70) return { before: 350, after: 100 };
+      if (radarSpeed >= 50) return { before: 250, after: 100 };
+      return { before: 100, after: 80 };
+    }
+
+    function getDetectionAngle(speed) {
+      if (speed <= 50) return 43;
+      if (speed <= 70) return 18;
+      if (speed <= 90) return 13;
+      if (speed <= 110) return 9;
+      if (speed <= 130) return 6;
+      return 5;
     }
 
     function isRelevantRadar(radar) {
@@ -733,24 +700,21 @@
       const dist = haversine(currentPos.latitude, currentPos.longitude, radar.lat, radar.lon);
       const zone = getAlertZone(radar.speed);
       const maxDist = zone.before + zone.after;
-
       if (dist > maxDist) return false;
 
       const bearingToRadar = bearing(currentPos.latitude, currentPos.longitude, radar.lat, radar.lon);
       const radarAzimut = parseFloat(radar.azimut || 0);
       const myHeading = currentBearing;
 
-      // Angle de détection adaptatif
-      detectionAngle = getDetectionAngle(currentSpeed);
-
+      const detectionAngle = getDetectionAngle(currentSpeed);
       let headingDiff = Math.abs(myHeading - radarAzimut);
       if (headingDiff > 180) headingDiff = 360 - headingDiff;
 
       let bearingDiff = Math.abs(myHeading - bearingToRadar);
       if (bearingDiff > 180) bearingDiff = 360 - bearingDiff;
 
-      const goingTowardsRadar = bearingDiff < detectionAngle;
-      const radarPointsAtMe = headingDiff < 60;
+      const goingTowardsRadar = bearingDiff <= detectionAngle;
+      const radarPointsAtMe = headingDiff <= 60;
       const isBidirectional = radar.flash === 'D';
 
       if (radar.position === 'L') return false;
@@ -760,308 +724,282 @@
       return true;
     }
 
-    async function fetchData(url, proxyName, timeout = 180000) {
+    // -----------------------------
+    // Data + cache logic
+    // -----------------------------
+    function getAgeDays() {
+      const dateStr = localStorage.getItem(STORAGE.radarsdate);
+      if (!dateStr) return Infinity;
+      const t = new Date(dateStr).getTime();
+      if (!isFinite(t)) return Infinity;
+      return (Date.now() - t) / 86400000;
+    }
+
+    function updateStatusButton() {
+      const btn = document.getElementById('status-btn');
+      const dateStr = localStorage.getItem(STORAGE.radarsdate);
+
+      if (!dateStr || radars.length === 0) {
+        btn.className = 'status-btn status-red';
+        btn.textContent = 'Pas de données';
+        return;
+      }
+
+      const ageDays = getAgeDays();
+      if (ageDays < ORANGE_DAYS) {
+        btn.className = 'status-btn status-green';
+        btn.textContent = `${radars.length} radars`;
+      } else if (ageDays < RED_DAYS) {
+        btn.className = 'status-btn status-orange';
+        btn.textContent = `${radars.length} (${Math.floor(ageDays)}j)`;
+      } else {
+        btn.className = 'status-btn status-red';
+        btn.textContent = 'MAJ requise';
+      }
+    }
+
+    function loadLocalCacheIntoMemory() {
+      const cached = localStorage.getItem(STORAGE.radarscache);
+      if (!cached) return false;
+      try {
+        radars = JSON.parse(cached) || [];
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
+    function requiresGPSForSettings(apiSource, limitFrance, useRadius) {
+      if (apiSource === 'lufop') return !!useRadius;
+      if (apiSource === 'blitzer') return true;
+      return false;
+    }
+
+    async function fetchDataSingle(url, proxyName, timeout = 180000) {
       const proxyFn = PROXIES[proxyName];
-      if (!proxyFn) throw new Error('Proxy inconnu: ' + proxyName);
-
+      if (!proxyFn) throw new Error(`Proxy inconnu: ${proxyName}`);
       const proxyUrl = proxyFn(url);
-      const modeName = proxyName === 'worker' ? 'Cloudflare Worker' : 
-                       proxyName === 'direct' ? 'DIRECT' : 
-                       'Proxy ' + proxyName;
 
-      addLog('🔄 Mode: ' + modeName, 'warning');
+      const modeName = proxyName === 'proxy' ? 'Proxy personnel Sicho95' : 'DIRECT (sans proxy)';
+      addLog(`Mode: ${modeName}`, 'warning');
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeout);
 
       try {
         const startTime = Date.now();
-        const r = await fetch(proxyUrl, { 
+        const r = await fetch(proxyUrl, {
           signal: controller.signal,
           mode: 'cors',
-          headers: {
-            'Accept': 'application/json',
-            'User-Agent': 'RadarAlertPro/2.6'
-          }
+          cache: 'no-store' // le Worker gère son cache; on évite le cache navigateur
         });
         clearTimeout(timeoutId);
 
         const elapsed = Date.now() - startTime;
-        addLog('✅ Réponse en ' + elapsed + 'ms', 'success');
+        addLog(`Réponse en ${elapsed} ms`, 'success');
 
-        if (!r.ok) {
-          throw new Error('HTTP ' + r.status);
-        }
-
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r;
-
-      } catch(e) {
+      } catch (e) {
         clearTimeout(timeoutId);
-        addLog('❌ Échec: ' + e.message, 'error');
         throw e;
       }
     }
 
+    // IMPORTANT: Direct d'abord, puis fallback Proxy si échec
+    async function fetchData(url, preferredProxy, timeout = 180000) {
+      const first = 'direct';
+      const second = 'proxy';
+
+      try {
+        return await fetchDataSingle(url, first, timeout);
+      } catch (e1) {
+        addLog(`Échec en Direct: ${e1.message}`, 'warning');
+
+        // Si l’utilisateur a explicitement choisi "proxy", on est déjà censé être en proxy,
+        // mais ici on force le fallback automatique demandé.
+        try {
+          const r = await fetchDataSingle(url, second, timeout);
+
+          // On persiste le switch pour les prochaines fois (comme "passage automatique proxy")
+          localStorage.setItem(STORAGE.corsproxy, 'proxy');
+          const select = document.getElementById('cors-proxy');
+          if (select) select.value = 'proxy';
+
+          addLog('Bascule automatique vers Proxy OK', 'success');
+          return r;
+        } catch (e2) {
+          addLog(`Échec en Proxy aussi: ${e2.message}`, 'error');
+          // remonte l'erreur du proxy (la plus utile si direct échoue)
+          throw e2;
+        }
+      }
+    }
+
+    function getSettingsFromStorage() {
+      const apiSource = localStorage.getItem(STORAGE.apisource) || 'lufop';
+      const proxy = normalizeProxyValue(localStorage.getItem(STORAGE.corsproxy) || 'direct');
+
+      const nbr = parseInt(localStorage.getItem(STORAGE.radarcount) || '5000', 10);
+      const fr = (localStorage.getItem(STORAGE.limitfrance) !== 'false');
+      const useR = (localStorage.getItem(STORAGE.useradius) === 'true');
+      const km = parseFloat(localStorage.getItem(STORAGE.radiuskm) || '1000');
+      const zoom = parseInt(localStorage.getItem(STORAGE.zoomlevel) || '8', 10);
+
+      return { apiSource, proxy, nbr, fr, useR, km, zoom };
+    }
+
+    function setLoadingUI(on) {
+      if (!on) return;
+      const btn = document.getElementById('status-btn');
+      btn.textContent = 'Chargement...';
+      btn.className = 'status-btn status-orange';
+    }
+
+    async function refreshRadars({ reason }) {
+      const s = getSettingsFromStorage();
+
+      const needsGPS = requiresGPSForSettings(s.apiSource, s.fr, s.useR);
+      if (needsGPS && !currentPos) {
+        addLog(`MAJ (${reason}): en attente GPS...`, 'warning');
+        autoRefreshRequested = true;
+        return;
+      }
+
+      setLoadingUI(true);
+
+      try {
+        if (s.apiSource === 'lufop') await loadLufop(s);
+        else await loadBlitzer(s);
+      } catch (e) {
+        addLog(`ÉCHEC MAJ (${reason}): ${e.message}`, 'error');
+        alert(e.message);
+        document.getElementById('status-btn').textContent = 'Erreur';
+        document.getElementById('status-btn').className = 'status-btn status-red';
+      }
+    }
+
+    function manualRefresh() {
+      addLog('MAJ manuelle demandée', 'info');
+      refreshRadars({ reason: 'manuel' });
+    }
+
     async function saveSettings() {
       const apiSource = document.getElementById('api-source').value;
-      const proxy = document.getElementById('cors-proxy').value;
-      const workerUrl = document.getElementById('worker-url').value.trim();
-      const key = document.getElementById('api-key').value.trim();
+      const proxy = normalizeProxyValue(document.getElementById('cors-proxy').value);
+
       const nbr = document.getElementById('radar-count').value;
       const fr = document.getElementById('limit-france').checked;
       const useR = document.getElementById('use-radius').checked;
       const km = document.getElementById('radius-km').value;
       const zoom = document.getElementById('zoom-level').value;
 
-      if (apiSource === 'lufop' && !key) {
-        alert('❌ Clé API requise');
-        openModal();
-        return;
-      }
+      localStorage.setItem(STORAGE.apisource, apiSource);
+      localStorage.setItem(STORAGE.corsproxy, proxy);
+      localStorage.setItem(STORAGE.radarcount, nbr);
+      localStorage.setItem(STORAGE.limitfrance, fr);
+      localStorage.setItem(STORAGE.useradius, useR);
+      localStorage.setItem(STORAGE.radiuskm, km);
+      localStorage.setItem(STORAGE.zoomlevel, zoom);
 
-      if (proxy === 'worker' && !workerUrl) {
-        alert('❌ URL Cloudflare Worker requise');
-        openModal();
-        return;
-      }
+      addLog('Paramètres sauvegardés', 'success');
 
-      localStorage.setItem('api_source', apiSource);
-      localStorage.setItem('cors_proxy', proxy);
-      localStorage.setItem('worker_url', workerUrl);
-      localStorage.setItem('lufop_key', key);
-      localStorage.setItem('radar_count', nbr);
-      localStorage.setItem('limit_france', fr);
-      localStorage.setItem('use_radius', useR);
-      localStorage.setItem('radius_km', km);
-      localStorage.setItem('zoom_level', zoom);
-
-      document.getElementById('status-btn').textContent = 'Chargement...';
-      document.getElementById('status-btn').className = 'status-orange';
-
-      if (apiSource === 'lufop') await loadLufop();
-      else await loadBlitzer();
+      await refreshRadars({ reason: 'settings' });
+      closeModal();
     }
 
-    async function loadLufop() {
-      const key = localStorage.getItem('lufop_key');
-      const nbr = localStorage.getItem('radar_count') || '5000';
-      const fr = localStorage.getItem('limit_france') !== 'false';
-      const useR = localStorage.getItem('use_radius') === 'true';
-      const km = localStorage.getItem('radius_km') || '1000';
-      const proxy = localStorage.getItem('cors_proxy') || 'worker';
+    async function loadLufop(s) {
+      let url = `https://api.lufop.net/api?format=json&nbr=${encodeURIComponent(s.nbr)}`;
 
-      let url = 'https://api.lufop.net/api?key=' + key + '&format=json&nbr=' + nbr;
-
-      if (fr && useR) {
-        if (!currentPos) { 
-          alert('GPS requis'); 
-          return; 
-        }
-        url += '&pays=fr&q=' + currentPos.latitude + ',' + currentPos.longitude + '&m=' + km;
-      } else if (useR) {
-        if (!currentPos) { 
-          alert('GPS requis'); 
-          return; 
-        }
-        url += '&q=' + currentPos.latitude + ',' + currentPos.longitude + '&m=' + km;
-      } else if (fr) {
-        url += '&pays=fr';
+      if (s.useR) {
+        if (!currentPos) { alert('GPS requis'); return; }
+        url += `&q=${currentPos.latitude},${currentPos.longitude}&m=${encodeURIComponent(s.km)}`;
+        if (s.fr) url += `&pays=fr`;
+      } else {
+        if (s.fr) url += `&pays=fr`;
       }
 
-      try {
-        addLog('📡 Chargement Lufop...', 'info');
+      addLog('Chargement Lufop...', 'info');
 
-        const r = await fetchData(url, proxy);
-        const text = await r.text();
-        const data = JSON.parse(text);
+      // Direct d'abord + fallback auto proxy si besoin
+      const r = await fetchData(url, s.proxy);
 
-        radars = data.map(x => ({
-          lat: parseFloat(x.lat || x.latitude), 
-          lon: parseFloat(x.lng || x.lon || x.longitude),
-          speed: parseInt(x.vitesse || x.speed || 50), 
-          flash: x.flash || 'D',
-          position: x.position || x.emplacement || 'C', 
-          azimut: parseFloat(x.azimut || 0)
-        }));
+      const text = await r.text();
+      const data = JSON.parse(text);
 
-        localStorage.setItem('radars_cache', JSON.stringify(radars));
-        localStorage.setItem('radars_date', new Date().toISOString());
-        updateStatusButton();
+      radars = (data || []).map(x => ({
+        lat: parseFloat(x.lat ?? x.latitude),
+        lon: parseFloat(x.lng ?? x.lon ?? x.longitude),
+        speed: parseInt(x.vitesse ?? x.speed ?? 50, 10),
+        flash: x.flash ?? 'D',
+        position: x.position ?? x.emplacement ?? 'C',
+        azimut: parseFloat(x.azimut ?? 0)
+      }));
 
-        addLog('🎉 ' + radars.length + ' radars chargés', 'success');
-        alert('✅ ' + radars.length + ' radars');
-        closeModal();
-      } catch(e) {
-        addLog('💥 ÉCHEC: ' + e.message, 'error');
-        alert('❌ ' + e.message);
-        document.getElementById('status-btn').textContent = 'Erreur';
-        document.getElementById('status-btn').className = 'status-red';
-      }
+      localStorage.setItem(STORAGE.radarscache, JSON.stringify(radars));
+      localStorage.setItem(STORAGE.radarsdate, new Date().toISOString());
+      updateStatusButton();
+
+      autoRefreshDone = true;
+      addLog(`${radars.length} radars chargés`, 'success');
     }
 
-    async function loadBlitzer() {
-      if (!currentPos) { 
-        alert('GPS requis'); 
-        return; 
-      }
+    async function loadBlitzer(s) {
+      if (!currentPos) { alert('GPS requis'); return; }
 
-      const km = parseFloat(localStorage.getItem('radius_km') || '1000');
-      const zoom = parseInt(localStorage.getItem('zoom_level') || '8');
-      const proxy = localStorage.getItem('cors_proxy') || 'worker';
-
-      const deg = km / 111;
+      const deg = s.km / 111;
       const lat = currentPos.latitude, lon = currentPos.longitude;
       const latMin = Math.max(-90, lat - deg);
       const latMax = Math.min(90, lat + deg);
       const lonMin = Math.max(-180, lon - deg);
       const lonMax = Math.min(180, lon + deg);
-      const box = latMin + ',' + lonMin + ',' + latMax + ',' + lonMax;
 
-      const url = 'https://cdn2.atudo.net/api/4.0/pois.php?z=' + zoom + '&type=0,1,2,3,4,5,6,101,102,103&box=' + box;
+      const box = `${latMin},${lonMin},${latMax},${lonMax}`;
+      const url = `https://cdn2.atudo.net/api/4.0/pois.php?z=${s.zoom}&type=0,1,2,3,4,5,6,101,102,103&box=${encodeURIComponent(box)}`;
 
-      try {
-        addLog('📡 Chargement Blitzer...', 'info');
+      addLog('Chargement Blitzer...', 'info');
 
-        const r = await fetchData(url, proxy);
-        const data = await r.json();
-        const pois = data.pois ? Object.values(data.pois) : (Array.isArray(data) ? data : []);
+      // Direct d'abord + fallback auto proxy si besoin
+      const r = await fetchData(url, s.proxy);
 
-        radars = pois.slice(0, parseInt(localStorage.getItem('radar_count') || '5000')).map(x => ({
-          lat: parseFloat(x.lat || x.latitude || 0),
-          lon: parseFloat(x.lng || x.lon || x.longitude || 0),
-          speed: parseInt(x.speed || x.vmax || 50),
-          flash: 'D', position: 'C', azimut: 0
-        }));
+      const data = await r.json();
+      const pois = data?.pois ? Object.values(data.pois) : (Array.isArray(data) ? data : []);
 
-        localStorage.setItem('radars_cache', JSON.stringify(radars));
-        localStorage.setItem('radars_date', new Date().toISOString());
-        updateStatusButton();
+      radars = pois.slice(0, s.nbr).map(x => ({
+        lat: parseFloat(x.lat ?? x.latitude ?? 0),
+        lon: parseFloat(x.lng ?? x.lon ?? x.longitude ?? 0),
+        speed: parseInt(x.speed ?? x.vmax ?? 50, 10),
+        flash: 'D',
+        position: 'C',
+        azimut: 0
+      }));
 
-        addLog('🎉 ' + radars.length + ' radars (Blitzer)', 'success');
-        alert('✅ ' + radars.length + ' radars');
-        closeModal();
-      } catch(e) {
-        addLog('💥 ÉCHEC: ' + e.message, 'error');
-        alert('❌ ' + e.message);
-        document.getElementById('status-btn').textContent = 'Erreur';
-        document.getElementById('status-btn').className = 'status-red';
-      }
+      localStorage.setItem(STORAGE.radarscache, JSON.stringify(radars));
+      localStorage.setItem(STORAGE.radarsdate, new Date().toISOString());
+      updateStatusButton();
+
+      autoRefreshDone = true;
+      addLog(`${radars.length} radars Blitzer`, 'success');
     }
 
-    function updateStatusButton() {
-      const date = localStorage.getItem('radars_date');
-      const btn = document.getElementById('status-btn');
+    function scheduleAutoRefreshIfNeeded() {
+      const ageDays = getAgeDays();
+      const shouldRefresh = (!isFinite(ageDays)) || (ageDays >= ORANGE_DAYS);
 
-      if (!date || radars.length === 0) {
-        btn.className = 'status-red';
-        btn.textContent = 'Pas de données';
+      if (!shouldRefresh) {
+        addLog(`Données OK (${Math.floor(ageDays)}j) => pas de MAJ auto`, 'info');
         return;
       }
 
-      const days = (Date.now() - new Date(date)) / 86400000;
-      if (days < 1) {
-        btn.className = 'status-green';
-        btn.textContent = radars.length + ' radars';
-      } else if (days < 30) {
-        btn.className = 'status-orange';
-        btn.textContent = radars.length + ' (' + Math.floor(days) + 'j)';
-      } else {
-        btn.className = 'status-red';
-        btn.textContent = 'MAJ requise';
-      }
+      autoRefreshRequested = true;
+      addLog(`MAJ auto planifiée (données ${isFinite(ageDays) ? Math.floor(ageDays) + 'j' : 'absentes'})`, 'warning');
+
+      refreshRadars({ reason: 'auto-start' });
     }
 
-    navigator.geolocation.watchPosition(pos => {
-      const now = Date.now();
-      gpsRefreshRate = now - lastGPSUpdate;
-      lastGPSUpdate = now;
-
-      currentPos = pos.coords;
-      currentSpeed = (pos.coords.speed || 0) * 3.6;
-      currentBearing = pos.coords.heading || 0;
-
-      if (debugMode) {
-        document.getElementById('dbg-heading').textContent = currentBearing.toFixed(0);
-        document.getElementById('dbg-lat').textContent = currentPos.latitude.toFixed(6);
-        document.getElementById('dbg-lon').textContent = currentPos.longitude.toFixed(6);
-        document.getElementById('dbg-alt').textContent = (currentPos.altitude || 0).toFixed(0);
-        document.getElementById('dbg-speed').textContent = currentSpeed.toFixed(1);
-        document.getElementById('dbg-accuracy').textContent = (currentPos.accuracy || 0).toFixed(0);
-        document.getElementById('dbg-radars').textContent = radars.length;
-        document.getElementById('dbg-angle').textContent = detectionAngle.toFixed(0);
-        document.getElementById('dbg-refresh').textContent = gpsRefreshRate;
-      }
-
-      document.getElementById('speed-value').textContent = Math.round(currentSpeed);
-
-      const relevant = radars.filter(isRelevantRadar)
-        .map(r => ({
-          ...r,
-          distance: haversine(currentPos.latitude, currentPos.longitude, r.lat, r.lon)
-        }))
-        .sort((a, b) => a.distance - b.distance);
-
-      if (debugMode) {
-        document.getElementById('dbg-relevant').textContent = relevant.length;
-      }
-
-      if (relevant.length > 0) {
-        const radar = relevant[0];
-        const zone = getAlertZone(radar.speed);
-        const currentDistance = radar.distance;
-
-        // N'afficher QUE si dans la zone ET qu'on se rapproche
-        if (currentDistance <= zone.before) {
-          if (currentDistance < lastDistance || !activeRadar) {
-            // On se rapproche ou nouveau radar
-            activeRadar = radar;
-            lastDistance = currentDistance;
-
-            document.getElementById('radar-panel').style.display = 'flex';
-            document.getElementById('radar-limit').textContent = radar.speed;
-            document.getElementById('radar-distance').textContent = Math.round(currentDistance) + 'm';
-
-            if (currentSpeed <= radar.speed + 1) {
-              document.body.className = 'bg-green';
-            } else if (currentSpeed <= radar.speed + 5) {
-              document.body.className = 'bg-orange';
-            } else {
-              document.body.className = 'bg-red';
-            }
-
-            const progress = ((zone.before - currentDistance) / zone.before) * 100;
-            document.getElementById('gauge-fill').style.width = Math.max(0, Math.min(100, progress)) + '%';
-
-            const nowBeep = Date.now();
-            if (currentDistance <= zone.before && currentDistance > zone.before * 0.8 && lastBeepTime === 0) {
-              beep(1500, 300);
-              lastBeepTime = nowBeep;
-            }
-            if (currentSpeed > radar.speed + 5 && nowBeep - lastBeepTime > 2000) {
-              beep(2000, 200);
-              lastBeepTime = nowBeep;
-            }
-          } else {
-            // On s'éloigne → masquer
-            resetDisplay();
-          }
-        } else {
-          resetDisplay();
-        }
-      } else {
-        resetDisplay();
-      }
-
-    }, 
-    (error) => {
-      addLog('❌ Erreur GPS (code ' + error.code + '): ' + error.message, 'error');
-    }, 
-    { 
-      enableHighAccuracy: true, 
-      maximumAge: 0,
-      timeout: 5000
-    });
-
+    // -----------------------------
+    // Display reset
+    // -----------------------------
     function resetDisplay() {
       activeRadar = null;
       lastDistance = Infinity;
@@ -1071,29 +1009,123 @@
       lastBeepTime = 0;
     }
 
-    window.onload = () => {
-      addLog('🚀 Radar Alert Pro V2.6', 'success');
-      addLog('Zones optimisées + Angle adaptatif + GPS haute précision', 'info');
+    // -----------------------------
+    // GPS loop
+    // -----------------------------
+    navigator.geolocation.watchPosition(
+      (pos) => {
+        const now = Date.now();
+        gpsRefreshRate = now - lastGPSUpdate;
+        lastGPSUpdate = now;
 
-      const cached = localStorage.getItem('radars_cache');
-      if (cached) {
-        try {
-          radars = JSON.parse(cached);
-          addLog('📦 Cache: ' + radars.length + ' radars', 'success');
-        } catch(e) {
-          addLog('❌ Cache corrompu', 'error');
+        currentPos = pos.coords;
+        currentSpeed = (pos.coords.speed || 0) * 3.6;
+        currentBearing = pos.coords.heading || 0;
+
+        const detectionAngle = getDetectionAngle(currentSpeed);
+
+        if (autoRefreshRequested && !autoRefreshDone) {
+          autoRefreshRequested = false;
+          refreshRadars({ reason: 'auto-gps-ready' });
         }
-      }
+
+        if (debugMode) {
+          document.getElementById('dbg-heading').textContent = currentBearing.toFixed(0);
+          document.getElementById('dbg-lat').textContent = (currentPos.latitude ?? 0).toFixed(6);
+          document.getElementById('dbg-lon').textContent = (currentPos.longitude ?? 0).toFixed(6);
+          document.getElementById('dbg-alt').textContent = ((currentPos.altitude ?? 0)).toFixed(0);
+          document.getElementById('dbg-speed').textContent = currentSpeed.toFixed(1);
+          document.getElementById('dbg-accuracy').textContent = ((currentPos.accuracy ?? 0)).toFixed(0);
+          document.getElementById('dbg-radars').textContent = radars.length;
+          document.getElementById('dbg-angle').textContent = detectionAngle.toFixed(0);
+          document.getElementById('dbg-refresh').textContent = gpsRefreshRate;
+        }
+
+        document.getElementById('speed-value').textContent = Math.round(currentSpeed);
+
+        const relevant = radars
+          .filter(isRelevantRadar)
+          .map(r => ({
+            ...r,
+            distance: haversine(currentPos.latitude, currentPos.longitude, r.lat, r.lon)
+          }))
+          .sort((a, b) => a.distance - b.distance);
+
+        if (debugMode) document.getElementById('dbg-relevant').textContent = relevant.length;
+
+        if (relevant.length === 0) {
+          resetDisplay();
+          return;
+        }
+
+        const radar = relevant[0];
+        const zone = getAlertZone(radar.speed);
+        const currentDistance = radar.distance;
+
+        if (currentDistance <= zone.before) {
+          if (currentDistance <= lastDistance || !activeRadar) {
+            activeRadar = radar;
+            lastDistance = currentDistance;
+
+            document.getElementById('radar-panel').style.display = 'flex';
+            document.getElementById('radar-limit').textContent = radar.speed;
+            document.getElementById('radar-distance').textContent = `${Math.round(currentDistance)} m`;
+
+            if (currentSpeed <= radar.speed - 1) document.body.className = 'bg-green';
+            else if (currentSpeed <= radar.speed + 5) document.body.className = 'bg-orange';
+            else document.body.className = 'bg-red';
+
+            const progress = ((zone.before - currentDistance) / zone.before) * 100;
+            document.getElementById('gauge-fill').style.width = `${Math.max(0, Math.min(100, progress))}%`;
+
+            const nowBeep = Date.now();
+            if (currentDistance < zone.before && currentDistance > zone.before * 0.8 && lastBeepTime === 0) {
+              beep(1500, 300);
+              lastBeepTime = nowBeep;
+            }
+            if (currentSpeed > radar.speed + 5 && nowBeep - lastBeepTime > 2000) {
+              beep(2000, 200);
+              lastBeepTime = nowBeep;
+            }
+          } else {
+            resetDisplay();
+          }
+        } else {
+          resetDisplay();
+        }
+      },
+      (error) => {
+        resetDisplay();
+        addLog(`Erreur GPS ${error.code}: ${error.message}`, 'error');
+      },
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
+    );
+
+    // -----------------------------
+    // Startup
+    // -----------------------------
+    window.onload = () => {
+      addLog(`Radar Alert Pro V${APP_VERSION}`, 'success');
+      addLog('Direct d’abord + fallback proxy + WakeLock', 'info');
+
+      requestWakeLock();
+
+      const ok = loadLocalCacheIntoMemory();
+      if (ok) addLog(`Cache: ${radars.length} radars`, 'success');
+      else addLog('Pas de cache local', 'warning');
+
       updateStatusButton();
+
+      scheduleAutoRefreshIfNeeded();
     };
   </script>
-  <script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/Radars/sw.js')
-      .then(reg => console.log('✅ SW OK'))
-      .catch(err => console.error('❌ SW:', err));
-  }
-  </script>
 
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('radars-sw.js')
+        .then(() => console.log('SW OK'))
+        .catch(err => console.error('SW KO', err));
+    }
+  </script>
 </body>
 </html>
