@@ -622,12 +622,6 @@
       if (radarSpeed >= 70) return { before: 350, after: 100 };
       if (radarSpeed >= 50) return { before: 250, after: 100 };
       return { before: 100, after: 80 };  // < 50 km/h
-    };
-      if (radarSpeed >= 110) return { before: 800, after: 200 };
-      if (radarSpeed >= 90) return { before: 500, after: 150 };
-      if (radarSpeed >= 70) return { before: 350, after: 100 };
-      if (radarSpeed >= 50) return { before: 250, after: 100 };
-      return { before: 100, after: 80 };
     }
 
     // Angle de détection adaptatif selon vitesse
