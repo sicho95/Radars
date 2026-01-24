@@ -1214,6 +1214,20 @@
       updateStatusButton();
 
       scheduleAutoRefreshIfNeeded();
+
+      // Event listeners pour la simulation
+      document.getElementById('gpxFileInput').addEventListener('change', loadGPXFile);
+      document.getElementById('customSpeedSlider').addEventListener('input', (e) => {
+        gpxSimulation.customSpeed = parseInt(e.target.value);
+        document.getElementById('customSpeedDisplay').textContent = e.target.value;
+      });
+      document.getElementById('timeAccelSlider').addEventListener('input', (e) => {
+        gpxSimulation.timeAccel = parseFloat(e.target.value);
+        document.getElementById('timeAccelDisplay').textContent = e.target.value;
+      });
+      document.getElementById('simSpeedMode').addEventListener('change', (e) => {
+        gpxSimulation.useGPXSpeed = (e.target.value === 'gpx');
+      });
     };
   </script>
 
@@ -1239,20 +1253,7 @@
       useGPXSpeed: false
     };
 
-    // Event listeners pour la simulation
-    document.getElementById('gpxFileInput').addEventListener('change', loadGPXFile);
-    document.getElementById('customSpeedSlider').addEventListener('input', (e) => {
-      gpxSimulation.customSpeed = parseInt(e.target.value);
-      document.getElementById('customSpeedDisplay').textContent = e.target.value;
-    });
-    document.getElementById('timeAccelSlider').addEventListener('input', (e) => {
-      gpxSimulation.timeAccel = parseFloat(e.target.value);
-      document.getElementById('timeAccelDisplay').textContent = e.target.value;
-    });
-    document.getElementById('simSpeedMode').addEventListener('change', (e) => {
-      gpxSimulation.useGPXSpeed = (e.target.value === 'gpx');
-    });
-
+    
     function loadGPXFile(event) {
       const file = event.target.files[0];
       if (!file) return;
