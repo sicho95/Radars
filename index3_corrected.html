@@ -1,0 +1,1548 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#2196F3" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <title>Damien Radar Alert</title>
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { width: 100%; height: 100%; overflow: hidden; position: fixed; }
+    body {
+      background: #000;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      transition: background 0.3s;
+      touch-action: none;
+    }
+
+    #top-controls {
+      position: fixed;
+      top: 5vh;
+      right: 10vw;
+      display: flex;
+      gap: clamp(6px, 2vw, 10px);
+      z-index: 1000;
+    }
+    .status-btn {
+      padding: clamp(8px, 2vw, 12px) clamp(12px, 3vw, 18px);
+      border: 2px solid #fff;
+      border-radius: clamp(6px, 2vw, 10px);
+      cursor: pointer;
+      font-size: clamp(12px, 3vw, 16px);
+      font-weight: bold;
+      white-space: nowrap;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+      user-select: none;
+    }
+    .status-green { background: #0a0; color: #fff; }
+    .status-orange { background: #f80; color: #000; }
+    .status-red { background: #f00; color: #fff; }
+
+    #settings-btn, #debug-btn {
+      width: clamp(35px, 10vw, 45px);
+      height: clamp(35px, 10vw, 45px);
+      border: 2px solid #0ff;
+      border-radius: 50%;
+      background: #222;
+      color: #0ff;
+      font-size: clamp(16px, 4vw, 22px);
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+      user-select: none;
+    }
+    #settings-btn:active, #debug-btn:active { background: #0ff; color: #000; }
+
+    #speed-display {
+      position: fixed;
+      top: 52%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      font-weight: bold;
+      text-shadow: 0 0 20px currentColor;
+      line-height: 1;
+      user-select: none;
+    }
+    #speed-value { font-size: clamp(100px, 25vw, 180px); display: block; }
+    #speed-unit { font-size: clamp(30px, 7vw, 50px); margin-left: 5px; }
+
+    #radar-panel {
+      position: fixed;
+      top: 25%;
+      right: calc(10vw + clamp(35px, 10vw, 45px) + clamp(6px, 2vw, 10px));
+      background: rgba(0,0,0,0.95);
+      border: clamp(3px, 1vw, 5px) solid #fff;
+      border-radius: 50%;
+      width: clamp(150px, 30vw, 210px);
+      height: clamp(150px, 30vw, 210px);
+      display: none;
+      box-shadow: 0 0 30px rgba(255,255,255,0.8);
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      user-select: none;
+    }
+    #radar-limit {
+      font-size: clamp(32px, 10vw, 48px);
+      font-weight: bold;
+      color: #f00;
+      text-shadow: 0 0 15px #f00, 0 0 30px #f00;
+      line-height: 1;
+      margin-bottom: clamp(4px, 1vh, 8px);
+    }
+    #radar-distance {
+      font-size: clamp(16px, 4vw, 24px);
+      font-weight: bold;
+      color: #fff;
+    }
+
+    #gauge-container {
+      position: fixed;
+      bottom: 10vh;
+      left: 5vw;
+      right: 5vw;
+      height: clamp(35px, 8vh, 50px);
+      background: #222;
+      border: clamp(2px, 0.5vw, 3px) solid #fff;
+      border-radius: clamp(5px, 1.5vw, 8px);
+      overflow: visible;
+      box-shadow: 0 2px 15px rgba(0,0,0,0.5);
+      user-select: none;
+    }
+    #gauge-fill {
+      height: 100%;
+      background: #f80;
+      width: 0%;
+      transition: width 0.2s ease-out;
+      border-radius: clamp(3px, 1vw, 6px);
+    }
+
+    .bg-green { background: #0a0 !important; }
+    .bg-orange { background: #f80 !important; }
+    .bg-red { background: #f00 !important; }
+
+    #modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.85);
+      z-index: 1999;
+      display: none;
+    }
+    #settings-modal {
+      position: fixed;
+      top: 5%;
+      left: 5%;
+      right: 5%;
+      bottom: 5%;
+      max-height: 90vh;
+      background: #111;
+      border: 3px solid #0ff;
+      border-radius: clamp(8px, 2vw, 15px);
+      z-index: 2000;
+      display: none;
+      overflow: hidden;
+      flex-direction: column;
+    }
+
+    #tab-container { display: flex; border-bottom: 2px solid #0ff; background: #000; }
+    .tab-button {
+      flex: 1;
+      padding: clamp(12px, 3vh, 16px);
+      background: #222;
+      border: none;
+      color: #888;
+      font-size: clamp(14px, 3.5vw, 18px);
+      font-weight: bold;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      transition: all 0.3s;
+      user-select: none;
+    }
+    .tab-button.active { background: #111; color: #0ff; border-bottom-color: #0ff; }
+    .tab-button:first-child { border-radius: clamp(8px, 2vw, 15px) 0 0 0; }
+    .tab-button:last-child { border-radius: 0 clamp(8px, 2vw, 15px) 0 0; }
+
+    .tab-content {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: clamp(12px, 3vw, 20px);
+      display: none;
+    }
+    .tab-content.active { display: block; }
+
+    #settings-modal h3 {
+      color: #0ff;
+      font-size: clamp(18px, 4.5vw, 24px);
+      margin-bottom: clamp(12px, 3vh, 20px);
+      border-bottom: 2px solid #0ff;
+      padding-bottom: clamp(8px, 2vh, 12px);
+    }
+    #settings-modal h4 {
+      color: #ff0;
+      font-size: clamp(14px, 3.5vw, 18px);
+      margin: clamp(12px, 3vh, 18px) 0 clamp(6px, 1.5vh, 10px) 0;
+    }
+    #settings-modal label {
+      display: block;
+      color: #aaa;
+      font-size: clamp(12px, 3vw, 15px);
+      margin-bottom: 5px;
+      line-height: 1.4;
+    }
+    #settings-modal input[type="text"],
+    #settings-modal input[type="number"],
+    #settings-modal select {
+      width: 100%;
+      padding: clamp(10px, 2.5vw, 14px);
+      margin-bottom: clamp(8px, 2vh, 12px);
+      background: #222;
+      border: 2px solid #fff;
+      color: #fff;
+      font-size: clamp(14px, 3.5vw, 18px);
+      border-radius: clamp(5px, 1.5vw, 8px);
+    }
+    #settings-modal button {
+      width: 100%;
+      padding: clamp(12px, 3vw, 16px);
+      border: none;
+      color: #fff;
+      font-size: clamp(14px, 3.5vw, 18px);
+      cursor: pointer;
+      border-radius: clamp(5px, 1.5vw, 8px);
+      margin: clamp(5px, 1.5vh, 8px) 0;
+      font-weight: bold;
+      user-select: none;
+    }
+
+    .checkbox-container {
+      display: flex;
+      align-items: center;
+      gap: clamp(8px, 2vw, 12px);
+      padding: clamp(10px, 2.5vw, 14px);
+      background: #222;
+      border: 2px solid #fff;
+      border-radius: clamp(5px, 1.5vw, 8px);
+      margin-bottom: clamp(8px, 2vh, 12px);
+      cursor: pointer;
+      user-select: none;
+    }
+    .checkbox-container input[type="checkbox"] {
+      width: clamp(18px, 4vw, 24px);
+      height: clamp(18px, 4vw, 24px);
+      cursor: pointer;
+    }
+    .checkbox-container label {
+      margin: 0;
+      cursor: pointer;
+      font-size: clamp(13px, 3.2vw, 16px);
+      color: #fff;
+    }
+
+    .radius-group {
+      margin-left: clamp(15px, 4vw, 25px);
+      padding: clamp(8px, 2vw, 12px);
+      background: #1a1a1a;
+      border-left: 3px solid #0ff;
+      border-radius: clamp(5px, 1.5vw, 8px);
+      margin-bottom: clamp(8px, 2vh, 12px);
+    }
+    .radius-group.disabled { opacity: 0.5; pointer-events: none; }
+
+    .btn-validate { background: #0a0; }
+    .btn-clear { background: #f80; }
+    .btn-close { background: #666; }
+
+    .info-box {
+      background: #222;
+      border-left: 4px solid #0ff;
+      padding: clamp(8px, 2vw, 12px);
+      margin: clamp(8px, 2vh, 12px) 0;
+      font-size: clamp(11px, 2.8vw, 14px);
+      line-height: 1.5;
+      border-radius: clamp(3px, 1vw, 5px);
+      user-select: none;
+    }
+    .info-box.warning { border-left-color: #ff0; }
+    .info-box.success { border-left-color: #0f0; }
+    .info-box.danger { border-left-color: #f00; }
+
+    #debug-info {
+      position: fixed;
+      top: 5vh;
+      left: 5vw;
+      background: rgba(0,0,0,0.9);
+      padding: clamp(8px, 2vw, 12px);
+      border: 2px solid #0ff;
+      border-radius: clamp(5px, 1.5vw, 8px);
+      font-family: "Courier New", monospace;
+      font-size: clamp(10px, 2.5vw, 13px);
+      display: none;
+      z-index: 999;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+      user-select: none;
+    }
+    #debug-info div { margin: clamp(2px, 0.5vh, 4px) 0; white-space: nowrap; }
+
+    #debug-log {
+      background: #000;
+      border: 2px solid #0f0;
+      border-radius: clamp(5px, 1.5vw, 8px);
+      padding: clamp(8px, 2vw, 12px);
+      min-height: 200px;
+      max-height: 60vh;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      font-family: "Courier New", monospace;
+      font-size: clamp(10px, 2.5vw, 12px);
+      text-align: left;
+      line-height: 1.5;
+      user-select: text;
+    }
+    .log-entry { margin: 3px 0; padding: 3px 0; border-bottom: 1px solid #222; }
+    .log-info { color: #0ff; }
+    .log-success { color: #0f0; }
+    .log-warning { color: #ff0; }
+    .log-error { color: #f00; }
+    .log-time { color: #888; font-size: 10px; margin-right: 5px; }
+
+    @media (orientation: landscape) {
+      #speed-value { font-size: clamp(80px, 18vh, 140px); }
+      #speed-unit { font-size: clamp(25px, 5vh, 40px); }
+    }
+    @media (max-width: 375px) {
+      #top-controls { gap: 5px; }
+      .status-btn { font-size: 11px; padding: 6px 10px; }
+      #debug-info { font-size: 9px; }
+    }
+    @media (min-width: 768px) {
+      #speed-value { font-size: clamp(120px, 20vw, 200px); }
+      #gauge-container { left: 10vw; right: 10vw; }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="modal-overlay"></div>
+
+  <div id="settings-modal">
+    <div id="tab-container">
+      <button class="tab-button active" onclick="switchTab('settings')">⚙️ Paramètres</button>
+      <button class="tab-button" onclick="switchTab('simulation')">🚗 Simulation</button>
+      <button class="tab-button" onclick="switchTab('logs')">📋 Journal</button>
+    </div>
+
+    <div id="tab-settings" class="tab-content active">
+      <h3>⚙️ Configuration</h3>
+
+      <h4>🔌 Source API</h4>
+      <select id="api-source">
+        <option value="lufop" selected>Lufop API (officielle)</option>
+        <option value="blitzer">Blitzer.de (non officielle ⚠️)</option>
+      </select>
+
+      <div class="info-box danger" id="blitzer-warning" style="display:none">
+        <b>Blitzer.de non officielle</b> - peut cesser de fonctionner à tout moment
+      </div>
+
+      <h4>🌐 Mode de connexion</h4>
+      <select id="cors-proxy">
+        <option value="direct" selected>📡 Direct (sans proxy)</option>
+        <option value="proxy">🛡️ Proxy CORS personnel (Sicho95)</option>
+      </select>
+
+      <div class="info-box warning">
+        <b>Conseil :</b><br />
+        • L’app teste d’abord <b>Direct</b>.<br />
+        • En cas d’erreur réseau/CORS, bascule automatiquement sur <b>Proxy CORS personnel (Sicho95)</b>.<br />
+        • Cache: géré <b>côté proxy/worker</b> (10 min).
+      </div>
+
+      <h4>🌍 Zone géographique</h4>
+      <div class="checkbox-container" onclick="document.getElementById('limit-france').click()">
+        <input type="checkbox" id="limit-france" checked onclick="event.stopPropagation()" />
+        <label for="limit-france">Limiter à la France</label>
+      </div>
+
+      <div class="checkbox-container" onclick="document.getElementById('use-radius').click()">
+        <input type="checkbox" id="use-radius" onclick="event.stopPropagation(); toggleRadius();" />
+        <label for="use-radius">Limiter par rayon</label>
+      </div>
+
+      <div class="radius-group disabled" id="radius-group">
+        <label>Rayon en km (10-5000)</label>
+        <input type="number" id="radius-km" placeholder="1000" min="10" max="5000" value="1000" />
+      </div>
+
+      <h4>🔍 Zoom Blitzer.de (1=large, 15=détaillé)</h4>
+      <input type="number" id="zoom-level" placeholder="8" min="1" max="15" value="8" />
+
+      <h4>📊 Nombre max de radars</h4>
+      <input type="number" id="radar-count" placeholder="5000" min="100" max="25000" value="5000" />
+
+      <div class="info-box success">
+        <b>Zones d'alerte optimisées :</b><br />
+        • ≥130 km/h: 1000m avant / 300m après<br />
+        • ≥110 km/h: 800m / 200m<br />
+        • ≥90 km/h: 500m / 150m<br />
+        • ≥70 km/h: 350m / 100m<br />
+        • ≥50 km/h: 250m / 100m<br />
+        • &lt;50 km/h: 100m / 80m
+      </div>
+
+      <button class="btn-validate" onclick="saveSettings()">✓ VALIDER ET CHARGER</button>
+      <button class="btn-clear" onclick="clearData()">🗑️ EFFACER CACHE</button>
+      <button class="btn-close" onclick="closeModal()">✕ FERMER</button>
+    </div>
+
+    <div id="tab-simulation" class="tab-content">
+      <h3>🚗 Simulation de Trajet GPX</h3>
+
+      <div class="config-group">
+        <label>📁 Fichier GPX</label>
+        <input type="file" id="gpxFileInput" accept=".gpx" style="width: 100%; padding: 10px; background: #222; border: 2px dashed #0ff; border-radius: 8px; color: #fff; cursor: pointer;">
+        <div id="gpxFileInfo" style="margin-top: 10px; padding: 10px; background: rgba(0,255,255,0.1); border-radius: 8px; display: none; font-size: 14px;">
+          <div style="margin-bottom: 5px;"><strong>📊 Informations du trajet:</strong></div>
+          <div id="gpxStats"></div>
+        </div>
+      </div>
+
+      <div class="config-group">
+        <label>⚙️ Mode de vitesse</label>
+        <select id="simSpeedMode" style="width: 100%; padding: 10px; background: #222; border: 1px solid #444; border-radius: 8px; color: #fff;">
+          <option value="gpx">Utiliser la vitesse du fichier GPX</option>
+          <option value="custom" selected>Vitesse personnalisée</option>
+        </select>
+      </div>
+
+      <div class="config-group">
+        <label>🏎️ Vitesse personnalisée: <span id="customSpeedDisplay">50</span> km/h</label>
+        <input type="range" id="customSpeedSlider" min="10" max="200" value="50" step="5" style="width: 100%;">
+        <div style="display: flex; justify-content: space-between; font-size: 12px; color: #888; margin-top: 5px;">
+          <span>10 km/h</span>
+          <span>200 km/h</span>
+        </div>
+      </div>
+
+      <div class="config-group">
+        <label>⏩ Accélération temporelle: <span id="timeAccelDisplay">1.0</span>x</label>
+        <input type="range" id="timeAccelSlider" min="1" max="10" value="1" step="0.5" style="width: 100%;">
+        <div style="display: flex; justify-content: space-between; font-size: 12px; color: #888; margin-top: 5px;">
+          <span>1x (temps réel)</span>
+          <span>10x</span>
+        </div>
+        <div style="font-size: 12px; color: #888; margin-top: 5px;">
+          ℹ️ Multiplie la vitesse de la simulation pour tester plus rapidement
+        </div>
+      </div>
+
+      <div id="simControlsSection" style="display: none;">
+        <div class="config-group">
+          <label>🎮 Contrôles</label>
+          <div style="display: flex; gap: 10px;">
+            <button id="simStartBtn" onclick="startGPXSimulation()" style="flex: 1; padding: 12px; background: #28a745; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
+              ▶️ Démarrer
+            </button>
+            <button id="simPauseBtn" onclick="pauseGPXSimulation()" style="flex: 1; padding: 12px; background: #ffc107; color: #000; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; display: none;">
+              ⏸️ Pause
+            </button>
+            <button id="simStopBtn" onclick="stopGPXSimulation()" style="flex: 1; padding: 12px; background: #dc3545; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; display: none;">
+              ⏹️ Stop
+            </button>
+          </div>
+        </div>
+
+        <div id="simProgressSection" style="display: none; margin-top: 15px;">
+          <div style="background: #222; border-radius: 8px; padding: 3px; margin-bottom: 10px;">
+            <div id="simProgressBar" style="background: linear-gradient(90deg, #0ff, #0af); height: 20px; border-radius: 6px; width: 0%; transition: width 0.5s;"></div>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 13px;">
+            <div>🚩 Point: <strong><span id="simCurrentPoint">0</span>/<span id="simTotalPoints">0</span></strong></div>
+            <div>📏 Distance: <strong id="simDistance">0.00</strong> km</div>
+            <div>⏱️ Temps: <strong id="simTime">0:00</strong></div>
+            <div>🏎️ Vitesse: <strong id="simCurrentSpeed">0</strong> km/h</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="simStatusActive" style="margin-top: 15px; padding: 12px; background: rgba(40, 167, 69, 0.2); border-left: 4px solid #28a745; border-radius: 8px; display: none;">
+        <strong>✅ Simulation active</strong><br>
+        <small>La position GPS est simulée. Les alertes radar fonctionnent normalement. Vous pouvez ajuster la vitesse en temps réel.</small>
+      </div>
+
+      <div style="margin-top: 15px; padding: 10px; background: rgba(0,255,255,0.05); border-radius: 8px; font-size: 12px; color: #888;">
+        <strong>💡 Comment utiliser:</strong><br>
+        1. Chargez un fichier GPX de votre trajet<br>
+        2. Choisissez le mode de vitesse (GPX ou personnalisée)<br>
+        3. Ajustez l'accélération temporelle si besoin<br>
+        4. Cliquez sur Démarrer pour lancer la simulation<br>
+        5. Les alertes radar se déclencheront comme en conditions réelles
+      </div>
+    </div>
+
+        <div id="tab-logs" class="tab-content">
+      <h3>📋 Journal de débogage détaillé</h3>
+      <div id="debug-log">
+        <div class="log-entry log-info"><span class="log-time">--:--:--</span>ℹ️ Application démarrée</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="top-controls">
+    <div id="status-btn" class="status-btn status-red" onclick="manualRefresh()">Pas de données</div>
+    <div id="settings-btn" onclick="openModal()">⚙</div>
+    <div id="debug-btn" onclick="toggleDebug()">?</div>
+  </div>
+
+  <div id="debug-info">
+    <div><b>📍 Position GPS</b></div>
+    <div>Lat: <span id="dbg-lat">--</span></div>
+    <div>Lon: <span id="dbg-lon">--</span></div>
+    <div>Alt: <span id="dbg-alt">--</span> m</div>
+
+    <div style="margin-top:6px"><b>🧭 Navigation</b></div>
+    <div>Heading: <span id="dbg-heading">--</span></div>
+    <div>Speed: <span id="dbg-speed">--</span> km/h</div>
+    <div>Accuracy: <span id="dbg-accuracy">--</span> m</div>
+
+    <div style="margin-top:6px"><b>📡 Données</b></div>
+    <div>Radars: <span id="dbg-radars">0</span></div>
+    <div>Relevant: <span id="dbg-relevant">0</span></div>
+    <div>Angle: <span id="dbg-angle">--</span></div>
+    <div>GPS: <span id="dbg-refresh">--</span> ms</div>
+  </div>
+
+  <div id="speed-display">
+    <span id="speed-value">0</span><span id="speed-unit">km/h</span>
+  </div>
+
+  <div id="radar-panel">
+    <div id="radar-limit">50</div>
+    <div id="radar-distance">500</div>
+  </div>
+
+  <div id="gauge-container">
+    <div id="gauge-fill"></div>
+  </div>
+
+  <script>
+    // -----------------------------
+    // State
+    // -----------------------------
+    let radars = [];
+    let currentPos = null;
+    let currentSpeed = 0;
+    let currentBearing = 0;
+    let activeRadar = null;
+    let lastBeepTime = 0;
+    let audioContext = null;
+    let watchId = null;
+    let debugMode = false;
+    let lastGPSUpdate = Date.now();
+    let gpsRefreshRate = 0;
+    let currentTab = 'settings';
+    let lastDistance = Infinity;
+
+    const APP_VERSION = '2.9';
+
+    const ORANGE_DAYS = 7;
+    const RED_DAYS = 30;
+
+    let autoRefreshRequested = false;
+    let autoRefreshDone = false;
+
+    // Wake Lock
+    let wakeLock = null;
+
+    const STORAGE = {
+      apisource: 'apisource',
+      corsproxy: 'corsproxy',
+      radarcount: 'radarcount',
+      limitfrance: 'limitfrance',
+      useradius: 'useradius',
+      radiuskm: 'radiuskm',
+      zoomlevel: 'zoomlevel',
+      radarscache: 'radarscache',
+      radarsdate: 'radarsdate'
+    };
+
+    const PROXIES = {
+      proxy: (url) => 'https://proxy.sicho95.workers.dev/?url=' + encodeURIComponent(url),
+      direct: (url) => url
+    };
+
+    // -----------------------------
+    // Wake lock (anti-veille)
+    // -----------------------------
+    async function requestWakeLock() {
+      try {
+        if (!('wakeLock' in navigator)) return;
+        if (document.visibilityState !== 'visible') return;
+        if (wakeLock) return;
+
+        wakeLock = await navigator.wakeLock.request('screen');
+        addLog('Wake Lock actif (anti-veille)', 'success');
+
+        wakeLock.addEventListener('release', () => {
+          wakeLock = null;
+          addLog('Wake Lock relâché', 'warning');
+        });
+      } catch (e) {
+        wakeLock = null;
+        addLog(`Wake Lock indisponible: ${e.message}`, 'warning');
+      }
+    }
+
+    async function releaseWakeLock() {
+      try {
+        if (wakeLock) await wakeLock.release();
+      } catch {}
+      wakeLock = null;
+    }
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        requestWakeLock();
+      } else {
+        releaseWakeLock();
+      }
+    });
+
+    // Re-tente aussi sur geste utilisateur (certains navigateurs l’exigent)
+    document.addEventListener('click', () => requestWakeLock(), { passive: true });
+    document.addEventListener('touchstart', () => requestWakeLock(), { passive: true });
+
+    // -----------------------------
+    // UI helpers
+    // -----------------------------
+    function switchTab(tabName) {
+      currentTab = tabName;
+      document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+      const buttons = document.querySelectorAll('.tab-button');
+      if (tabName === 'settings') {
+        buttons[0].classList.add('active');
+        document.getElementById('tab-settings').classList.add('active');
+      } else if (tabName === 'simulation') {
+        buttons[1].classList.add('active');
+        document.getElementById('tab-simulation').classList.add('active');
+      } else if (tabName === 'logs') {
+        buttons[2].classList.add('active');
+        document.getElementById('tab-logs').classList.add('active');
+      }
+      const labels = {settings: 'Paramètres', simulation: 'Simulation', logs: 'Journal'};
+      addLog(`Onglet ${labels[tabName] || tabName} affiché`, 'info');
+    }
+
+    function addLog(msg, type = 'info') {
+      console.log(type.toUpperCase(), msg);
+      const log = document.getElementById('debug-log');
+      if (!log) return;
+      const time = new Date().toLocaleTimeString('fr-FR');
+      const logClass = `log-${type}`;
+      const icon = type === 'error' ? '❌ ' : type === 'success' ? '✅ ' : type === 'warning' ? '⚠️ ' : 'ℹ️ ';
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${logClass}`;
+      entry.innerHTML = `<span class="log-time">${time}</span>${icon}${msg}`;
+      log.insertBefore(entry, log.firstChild);
+      while (log.children.length > 200) log.removeChild(log.lastChild);
+    }
+
+    function toggleDebug() {
+      debugMode = !debugMode;
+      document.getElementById('debug-info').style.display = debugMode ? 'block' : 'none';
+      if (debugMode) addLog('Mode debug activé', 'info');
+    }
+
+    function toggleRadius() {
+      const checkbox = document.getElementById('use-radius');
+      document.getElementById('radius-group').classList.toggle('disabled', !checkbox.checked);
+      addLog('Zones d\'alerte mises à jour', 'info');
+    }
+
+    function closeModal() {
+      document.getElementById('settings-modal').style.display = 'none';
+      document.getElementById('modal-overlay').style.display = 'none';
+      addLog('Modal fermée', 'info');
+    }
+
+    function normalizeProxyValue(v) {
+      if (v === 'proxy' || v === 'direct') return v;
+      if (v === 'worker' || v === 'allorigins' || v === 'corsproxy') return 'proxy';
+      return 'direct';
+    }
+
+    function openModal() {
+      document.getElementById('modal-overlay').style.display = 'block';
+      document.getElementById('settings-modal').style.display = 'flex';
+
+      document.getElementById('api-source').value = localStorage.getItem(STORAGE.apisource) || 'lufop';
+      document.getElementById('cors-proxy').value = normalizeProxyValue(localStorage.getItem(STORAGE.corsproxy) || 'direct');
+
+      document.getElementById('radar-count').value = localStorage.getItem(STORAGE.radarcount) || 5000;
+      document.getElementById('limit-france').checked = (localStorage.getItem(STORAGE.limitfrance) !== 'false');
+      document.getElementById('use-radius').checked = (localStorage.getItem(STORAGE.useradius) === 'true');
+      document.getElementById('radius-km').value = localStorage.getItem(STORAGE.radiuskm) || 1000;
+      document.getElementById('zoom-level').value = localStorage.getItem(STORAGE.zoomlevel) || 8;
+
+      if (document.getElementById('use-radius').checked) document.getElementById('radius-group').classList.remove('disabled');
+
+      document.getElementById('blitzer-warning').style.display =
+        (document.getElementById('api-source').value === 'blitzer') ? 'block' : 'none';
+
+      addLog('Modal ouverte', 'info');
+    }
+
+    document.getElementById('api-source').addEventListener('change', () => {
+      document.getElementById('blitzer-warning').style.display =
+        (document.getElementById('api-source').value === 'blitzer') ? 'block' : 'none';
+    });
+
+    function clearData() {
+      if (!confirm('Effacer toutes les données ?')) return;
+      localStorage.clear();
+      radars = [];
+      updateStatusButton();
+      addLog('Cache et données effacés', 'success');
+      alert('Données effacées');
+    }
+
+    // -----------------------------
+    // Audio
+    // -----------------------------
+    function initAudio() {
+      if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        addLog('Audio context initialisé', 'success');
+      }
+    }
+
+    function beep(freq = 1000, duration = 200) {
+      try {
+        initAudio();
+        const osc = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        osc.connect(gain);
+        gain.connect(audioContext.destination);
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.3, audioContext.currentTime);
+        osc.start();
+        setTimeout(() => osc.stop(), duration);
+      } catch (e) {
+        addLog(`Erreur audio: ${e.message}`, 'error');
+      }
+    }
+
+    // -----------------------------
+    // Math / radar logic
+    // -----------------------------
+    function haversine(lat1, lon1, lat2, lon2) {
+      const R = 6371e3;
+      const p1 = lat1 * Math.PI / 180;
+      const p2 = lat2 * Math.PI / 180;
+      const dlat = (lat2 - lat1) * Math.PI / 180;
+      const dlon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dlat / 2) ** 2 + Math.cos(p1) * Math.cos(p2) * Math.sin(dlon / 2) ** 2;
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    function bearing(lat1, lon1, lat2, lon2) {
+      const p1 = lat1 * Math.PI / 180;
+      const p2 = lat2 * Math.PI / 180;
+      const dlon = (lon2 - lon1) * Math.PI / 180;
+      const y = Math.sin(dlon) * Math.cos(p2);
+      const x = Math.cos(p1) * Math.sin(p2) - Math.sin(p1) * Math.cos(p2) * Math.cos(dlon);
+      const brng = Math.atan2(y, x);
+      return (brng * 180 / Math.PI + 360) % 360;
+    }
+
+    function getAlertZone(radarSpeed) {
+      if (radarSpeed >= 130) return { before: 1000, after: 300 };
+      if (radarSpeed >= 110) return { before: 800, after: 200 };
+      if (radarSpeed >= 90) return { before: 500, after: 150 };
+      if (radarSpeed >= 70) return { before: 350, after: 100 };
+      if (radarSpeed >= 50) return { before: 250, after: 100 };
+      return { before: 100, after: 80 };
+    }
+
+    function getDetectionAngle(speed) {
+      if (speed <= 50) return 43;
+      if (speed <= 70) return 18;
+      if (speed <= 90) return 13;
+      if (speed <= 110) return 9;
+      if (speed <= 130) return 6;
+      return 5;
+    }
+
+    function isRelevantRadar(radar) {
+      if (!currentPos || currentBearing === null) return false;
+
+      const dist = haversine(currentPos.latitude, currentPos.longitude, radar.lat, radar.lon);
+      const zone = getAlertZone(radar.speed);
+      const maxDist = zone.before + zone.after;
+      if (dist > maxDist) return false;
+
+      const bearingToRadar = bearing(currentPos.latitude, currentPos.longitude, radar.lat, radar.lon);
+      const radarAzimut = parseFloat(radar.azimut || 0);
+      const myHeading = currentBearing;
+
+      const detectionAngle = getDetectionAngle(currentSpeed);
+      let headingDiff = Math.abs(myHeading - radarAzimut);
+      if (headingDiff > 180) headingDiff = 360 - headingDiff;
+
+      let bearingDiff = Math.abs(myHeading - bearingToRadar);
+      if (bearingDiff > 180) bearingDiff = 360 - bearingDiff;
+
+      const goingTowardsRadar = bearingDiff <= detectionAngle;
+      const radarPointsAtMe = headingDiff <= 60;
+      const isBidirectional = radar.flash === 'D';
+
+      if (radar.position === 'L') return false;
+      if (!goingTowardsRadar) return false;
+      if (!isBidirectional && !radarPointsAtMe) return false;
+
+      return true;
+    }
+
+    // -----------------------------
+    // Data + cache logic
+    // -----------------------------
+    function getAgeDays() {
+      const dateStr = localStorage.getItem(STORAGE.radarsdate);
+      if (!dateStr) return Infinity;
+      const t = new Date(dateStr).getTime();
+      if (!isFinite(t)) return Infinity;
+      return (Date.now() - t) / 86400000;
+    }
+
+    function updateStatusButton() {
+      const btn = document.getElementById('status-btn');
+      const dateStr = localStorage.getItem(STORAGE.radarsdate);
+
+      if (!dateStr || radars.length === 0) {
+        btn.className = 'status-btn status-red';
+        btn.textContent = 'Pas de données';
+        return;
+      }
+
+      const ageDays = getAgeDays();
+      if (ageDays < ORANGE_DAYS) {
+        btn.className = 'status-btn status-green';
+        btn.textContent = `${radars.length} radars`;
+      } else if (ageDays < RED_DAYS) {
+        btn.className = 'status-btn status-orange';
+        btn.textContent = `${radars.length} (${Math.floor(ageDays)}j)`;
+      } else {
+        btn.className = 'status-btn status-red';
+        btn.textContent = 'MAJ requise';
+      }
+    }
+
+    function loadLocalCacheIntoMemory() {
+      const cached = localStorage.getItem(STORAGE.radarscache);
+      if (!cached) return false;
+      try {
+        radars = JSON.parse(cached) || [];
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
+    function requiresGPSForSettings(apiSource, limitFrance, useRadius) {
+      if (apiSource === 'lufop') return !!useRadius;
+      if (apiSource === 'blitzer') return true;
+      return false;
+    }
+
+    async function fetchDataSingle(url, proxyName, timeout = 180000) {
+      const proxyFn = PROXIES[proxyName];
+      if (!proxyFn) throw new Error(`Proxy inconnu: ${proxyName}`);
+      const proxyUrl = proxyFn(url);
+
+      const modeName = proxyName === 'proxy' ? 'Proxy personnel Sicho95' : 'DIRECT (sans proxy)';
+      addLog(`Mode: ${modeName}`, 'warning');
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+      try {
+        const startTime = Date.now();
+        const r = await fetch(proxyUrl, {
+          signal: controller.signal,
+          mode: 'cors',
+          cache: 'no-store' // le Worker gère son cache; on évite le cache navigateur
+        });
+        clearTimeout(timeoutId);
+
+        const elapsed = Date.now() - startTime;
+        addLog(`Réponse en ${elapsed} ms`, 'success');
+
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r;
+      } catch (e) {
+        clearTimeout(timeoutId);
+        throw e;
+      }
+    }
+
+    // IMPORTANT: Direct d'abord, puis fallback Proxy si échec
+    async function fetchData(url, preferredProxy, timeout = 180000) {
+      const first = 'direct';
+      const second = 'proxy';
+
+      try {
+        return await fetchDataSingle(url, first, timeout);
+      } catch (e1) {
+        addLog(`Échec en Direct: ${e1.message}`, 'warning');
+
+        // Si l’utilisateur a explicitement choisi "proxy", on est déjà censé être en proxy,
+        // mais ici on force le fallback automatique demandé.
+        try {
+          const r = await fetchDataSingle(url, second, timeout);
+
+          // On persiste le switch pour les prochaines fois (comme "passage automatique proxy")
+          localStorage.setItem(STORAGE.corsproxy, 'proxy');
+          const select = document.getElementById('cors-proxy');
+          if (select) select.value = 'proxy';
+
+          addLog('Bascule automatique vers Proxy OK', 'success');
+          return r;
+        } catch (e2) {
+          addLog(`Échec en Proxy aussi: ${e2.message}`, 'error');
+          // remonte l'erreur du proxy (la plus utile si direct échoue)
+          throw e2;
+        }
+      }
+    }
+
+    function getSettingsFromStorage() {
+      const apiSource = localStorage.getItem(STORAGE.apisource) || 'lufop';
+      const proxy = normalizeProxyValue(localStorage.getItem(STORAGE.corsproxy) || 'direct');
+
+      const nbr = parseInt(localStorage.getItem(STORAGE.radarcount) || '5000', 10);
+      const fr = (localStorage.getItem(STORAGE.limitfrance) !== 'false');
+      const useR = (localStorage.getItem(STORAGE.useradius) === 'true');
+      const km = parseFloat(localStorage.getItem(STORAGE.radiuskm) || '1000');
+      const zoom = parseInt(localStorage.getItem(STORAGE.zoomlevel) || '8', 10);
+
+      return { apiSource, proxy, nbr, fr, useR, km, zoom };
+    }
+
+    function setLoadingUI(on) {
+      if (!on) return;
+      const btn = document.getElementById('status-btn');
+      btn.textContent = 'Chargement...';
+      btn.className = 'status-btn status-orange';
+    }
+
+    async function refreshRadars({ reason }) {
+      const s = getSettingsFromStorage();
+
+      const needsGPS = requiresGPSForSettings(s.apiSource, s.fr, s.useR);
+      if (needsGPS && !currentPos) {
+        addLog(`MAJ (${reason}): en attente GPS...`, 'warning');
+        autoRefreshRequested = true;
+        return;
+      }
+
+      setLoadingUI(true);
+
+      try {
+        if (s.apiSource === 'lufop') await loadLufop(s);
+        else await loadBlitzer(s);
+      } catch (e) {
+        addLog(`ÉCHEC MAJ (${reason}): ${e.message}`, 'error');
+        alert(e.message);
+        document.getElementById('status-btn').textContent = 'Erreur';
+        document.getElementById('status-btn').className = 'status-btn status-red';
+      }
+    }
+
+    function manualRefresh() {
+      addLog('MAJ manuelle demandée', 'info');
+      refreshRadars({ reason: 'manuel' });
+    }
+
+    async function saveSettings() {
+      const apiSource = document.getElementById('api-source').value;
+      const proxy = normalizeProxyValue(document.getElementById('cors-proxy').value);
+
+      const nbr = document.getElementById('radar-count').value;
+      const fr = document.getElementById('limit-france').checked;
+      const useR = document.getElementById('use-radius').checked;
+      const km = document.getElementById('radius-km').value;
+      const zoom = document.getElementById('zoom-level').value;
+
+      localStorage.setItem(STORAGE.apisource, apiSource);
+      localStorage.setItem(STORAGE.corsproxy, proxy);
+      localStorage.setItem(STORAGE.radarcount, nbr);
+      localStorage.setItem(STORAGE.limitfrance, fr);
+      localStorage.setItem(STORAGE.useradius, useR);
+      localStorage.setItem(STORAGE.radiuskm, km);
+      localStorage.setItem(STORAGE.zoomlevel, zoom);
+
+      addLog('Paramètres sauvegardés', 'success');
+
+      await refreshRadars({ reason: 'settings' });
+      closeModal();
+    }
+
+    async function loadLufop(s) {
+      let url = `https://api.lufop.net/api?format=json&nbr=${encodeURIComponent(s.nbr)}`;
+
+      if (s.useR) {
+        if (!currentPos) { alert('GPS requis'); return; }
+        url += `&q=${currentPos.latitude},${currentPos.longitude}&m=${encodeURIComponent(s.km)}`;
+        if (s.fr) url += `&pays=fr`;
+      } else {
+        if (s.fr) url += `&pays=fr`;
+      }
+
+      addLog('Chargement Lufop...', 'info');
+
+      // Direct d'abord + fallback auto proxy si besoin
+      const r = await fetchData(url, s.proxy);
+
+      const text = await r.text();
+      const data = JSON.parse(text);
+
+      radars = (data || []).map(x => ({
+        lat: parseFloat(x.lat ?? x.latitude),
+        lon: parseFloat(x.lng ?? x.lon ?? x.longitude),
+        speed: parseInt(x.vitesse ?? x.speed ?? 50, 10),
+        flash: x.flash ?? 'D',
+        position: x.position ?? x.emplacement ?? 'C',
+        azimut: parseFloat(x.azimut ?? 0)
+      }));
+
+      localStorage.setItem(STORAGE.radarscache, JSON.stringify(radars));
+      localStorage.setItem(STORAGE.radarsdate, new Date().toISOString());
+      updateStatusButton();
+
+      autoRefreshDone = true;
+      addLog(`${radars.length} radars chargés`, 'success');
+    }
+
+    async function loadBlitzer(s) {
+      if (!currentPos) { alert('GPS requis'); return; }
+
+      const deg = s.km / 111;
+      const lat = currentPos.latitude, lon = currentPos.longitude;
+      const latMin = Math.max(-90, lat - deg);
+      const latMax = Math.min(90, lat + deg);
+      const lonMin = Math.max(-180, lon - deg);
+      const lonMax = Math.min(180, lon + deg);
+
+      const box = `${latMin},${lonMin},${latMax},${lonMax}`;
+      const url = `https://cdn2.atudo.net/api/4.0/pois.php?z=${s.zoom}&type=0,1,2,3,4,5,6,101,102,103&box=${encodeURIComponent(box)}`;
+
+      addLog('Chargement Blitzer...', 'info');
+
+      // Direct d'abord + fallback auto proxy si besoin
+      const r = await fetchData(url, s.proxy);
+
+      const data = await r.json();
+      const pois = data?.pois ? Object.values(data.pois) : (Array.isArray(data) ? data : []);
+
+      radars = pois.slice(0, s.nbr).map(x => ({
+        lat: parseFloat(x.lat ?? x.latitude ?? 0),
+        lon: parseFloat(x.lng ?? x.lon ?? x.longitude ?? 0),
+        speed: parseInt(x.speed ?? x.vmax ?? 50, 10),
+        flash: 'D',
+        position: 'C',
+        azimut: 0
+      }));
+
+      localStorage.setItem(STORAGE.radarscache, JSON.stringify(radars));
+      localStorage.setItem(STORAGE.radarsdate, new Date().toISOString());
+      updateStatusButton();
+
+      autoRefreshDone = true;
+      addLog(`${radars.length} radars Blitzer`, 'success');
+    }
+
+    function scheduleAutoRefreshIfNeeded() {
+      const ageDays = getAgeDays();
+      const shouldRefresh = (!isFinite(ageDays)) || (ageDays >= ORANGE_DAYS);
+
+      if (!shouldRefresh) {
+        addLog(`Données OK (${Math.floor(ageDays)}j) => pas de MAJ auto`, 'info');
+        return;
+      }
+
+      autoRefreshRequested = true;
+      addLog(`MAJ auto planifiée (données ${isFinite(ageDays) ? Math.floor(ageDays) + 'j' : 'absentes'})`, 'warning');
+
+      refreshRadars({ reason: 'auto-start' });
+    }
+
+    // -----------------------------
+    // Display reset
+    // -----------------------------
+    function resetDisplay() {
+      activeRadar = null;
+      lastDistance = Infinity;
+      document.getElementById('radar-panel').style.display = 'none';
+      document.body.className = '';
+      document.getElementById('gauge-fill').style.width = '0%';
+      lastBeepTime = 0;
+    }
+
+    // -----------------------------
+    // GPS loop
+    // -----------------------------
+    navigator.geolocation.watchPosition(
+      (pos) => {
+        // Ignorer les mises à jour GPS pendant la simulation
+        if (gpxSimulation.active) {
+          return;
+        }
+        
+        const now = Date.now();
+        gpsRefreshRate = now - lastGPSUpdate;
+        lastGPSUpdate = now;
+
+        currentPos = pos.coords;
+        currentSpeed = (pos.coords.speed || 0) * 3.6;
+        currentBearing = pos.coords.heading || 0;
+
+        const detectionAngle = getDetectionAngle(currentSpeed);
+
+        if (autoRefreshRequested && !autoRefreshDone) {
+          autoRefreshRequested = false;
+          refreshRadars({ reason: 'auto-gps-ready' });
+        }
+
+        if (debugMode) {
+          document.getElementById('dbg-heading').textContent = currentBearing.toFixed(0);
+          document.getElementById('dbg-lat').textContent = (currentPos.latitude ?? 0).toFixed(6);
+          document.getElementById('dbg-lon').textContent = (currentPos.longitude ?? 0).toFixed(6);
+          document.getElementById('dbg-alt').textContent = ((currentPos.altitude ?? 0)).toFixed(0);
+          document.getElementById('dbg-speed').textContent = currentSpeed.toFixed(1);
+          document.getElementById('dbg-accuracy').textContent = ((currentPos.accuracy ?? 0)).toFixed(0);
+          document.getElementById('dbg-radars').textContent = radars.length;
+          document.getElementById('dbg-angle').textContent = detectionAngle.toFixed(0);
+          document.getElementById('dbg-refresh').textContent = gpsRefreshRate;
+        }
+
+        document.getElementById('speed-value').textContent = Math.round(currentSpeed);
+
+        const relevant = radars
+          .filter(isRelevantRadar)
+          .map(r => ({
+            ...r,
+            distance: haversine(currentPos.latitude, currentPos.longitude, r.lat, r.lon)
+          }))
+          .sort((a, b) => a.distance - b.distance);
+
+        if (debugMode) document.getElementById('dbg-relevant').textContent = relevant.length;
+
+        if (relevant.length === 0) {
+          resetDisplay();
+          return;
+        }
+
+        const radar = relevant[0];
+        const zone = getAlertZone(radar.speed);
+        const currentDistance = radar.distance;
+
+        if (currentDistance <= zone.before) {
+          if (currentDistance <= lastDistance || !activeRadar) {
+            activeRadar = radar;
+            lastDistance = currentDistance;
+
+            document.getElementById('radar-panel').style.display = 'flex';
+            document.getElementById('radar-limit').textContent = radar.speed;
+            document.getElementById('radar-distance').textContent = `${Math.round(currentDistance)} m`;
+
+            if (currentSpeed <= radar.speed - 1) document.body.className = 'bg-green';
+            else if (currentSpeed <= radar.speed + 5) document.body.className = 'bg-orange';
+            else document.body.className = 'bg-red';
+
+            const progress = ((zone.before - currentDistance) / zone.before) * 100;
+            document.getElementById('gauge-fill').style.width = `${Math.max(0, Math.min(100, progress))}%`;
+
+            const nowBeep = Date.now();
+            if (currentDistance < zone.before && currentDistance > zone.before * 0.8 && lastBeepTime === 0) {
+              beep(1500, 300);
+              lastBeepTime = nowBeep;
+            }
+            if (currentSpeed > radar.speed + 5 && nowBeep - lastBeepTime > 2000) {
+              beep(2000, 200);
+              lastBeepTime = nowBeep;
+            }
+          } else {
+            resetDisplay();
+          }
+        } else {
+          resetDisplay();
+        }
+      },
+      (error) => {
+        resetDisplay();
+        addLog(`Erreur GPS ${error.code}: ${error.message}`, 'error');
+      },
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
+    );
+
+    // -----------------------------
+    // Startup
+    // -----------------------------
+    window.onload = () => {
+      addLog(`Radar Alert Pro V${APP_VERSION}`, 'success');
+      addLog('Direct d’abord + fallback proxy + WakeLock', 'info');
+
+      requestWakeLock();
+
+      const ok = loadLocalCacheIntoMemory();
+      if (ok) addLog(`Cache: ${radars.length} radars`, 'success');
+      else addLog('Pas de cache local', 'warning');
+
+      updateStatusButton();
+
+      scheduleAutoRefreshIfNeeded();
+    };
+  </script>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('radars-sw.js')
+        .then(() => console.log('SW OK'))
+        .catch(err => console.error('SW KO', err));
+    }
+  
+    // ========== SIMULATION GPX ==========
+    let gpxSimulation = {
+      active: false,
+      paused: false,
+      trackpoints: [],
+      currentIndex: 0,
+      intervalId: null,
+      startTime: null,
+      pausedTime: 0,
+      totalDistance: 0,
+      customSpeed: 50,
+      timeAccel: 1.0,
+      useGPXSpeed: false
+    };
+
+    // Event listeners pour la simulation
+    document.getElementById('gpxFileInput').addEventListener('change', loadGPXFile);
+    document.getElementById('customSpeedSlider').addEventListener('input', (e) => {
+      gpxSimulation.customSpeed = parseInt(e.target.value);
+      document.getElementById('customSpeedDisplay').textContent = e.target.value;
+    });
+    document.getElementById('timeAccelSlider').addEventListener('input', (e) => {
+      gpxSimulation.timeAccel = parseFloat(e.target.value);
+      document.getElementById('timeAccelDisplay').textContent = e.target.value;
+    });
+    document.getElementById('simSpeedMode').addEventListener('change', (e) => {
+      gpxSimulation.useGPXSpeed = (e.target.value === 'gpx');
+    });
+
+    function loadGPXFile(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          parseGPXFile(e.target.result);
+        } catch (error) {
+          addLog(`Erreur lecture GPX: ${error.message}`, 'error');
+          alert('Erreur lors de la lecture du fichier GPX');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function parseGPXFile(gpxText) {
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(gpxText, 'text/xml');
+
+      const trkpts = xmlDoc.getElementsByTagName('trkpt');
+      if (trkpts.length === 0) {
+        addLog('Aucun point trouvé dans le GPX', 'error');
+        alert('Aucun trackpoint trouvé dans le fichier GPX');
+        return;
+      }
+
+      gpxSimulation.trackpoints = [];
+      gpxSimulation.totalDistance = 0;
+
+      for (let i = 0; i < trkpts.length; i++) {
+        const pt = trkpts[i];
+        const lat = parseFloat(pt.getAttribute('lat'));
+        const lon = parseFloat(pt.getAttribute('lon'));
+
+        const eleNode = pt.getElementsByTagName('ele')[0];
+        const timeNode = pt.getElementsByTagName('time')[0];
+        const speedNode = pt.getElementsByTagName('speed')[0];
+
+        const trackpoint = {
+          lat: lat,
+          lon: lon,
+          ele: eleNode ? parseFloat(eleNode.textContent) : 0,
+          time: timeNode ? new Date(timeNode.textContent) : null,
+          speed: speedNode ? parseFloat(speedNode.textContent) * 3.6 : null
+        };
+
+        // Calculer la distance cumulée
+        if (i > 0) {
+          const prevPt = gpxSimulation.trackpoints[i - 1];
+          const dist = haversine(prevPt.lat, prevPt.lon, lat, lon);
+          gpxSimulation.totalDistance += dist;
+          trackpoint.cumDistance = gpxSimulation.totalDistance;
+        } else {
+          trackpoint.cumDistance = 0;
+        }
+
+        gpxSimulation.trackpoints.push(trackpoint);
+      }
+
+      // Afficher les infos
+      const distKm = (gpxSimulation.totalDistance / 1000).toFixed(2);
+      const hasSpeed = gpxSimulation.trackpoints.some(pt => pt.speed !== null);
+
+      document.getElementById('gpxStats').innerHTML = `
+        📍 Points: ${gpxSimulation.trackpoints.length}<br>
+        📏 Distance: ${distKm} km<br>
+        ${hasSpeed ? '✓ Données de vitesse disponibles<br>' : '⚠️ Pas de données de vitesse (utilisez vitesse personnalisée)<br>'}
+        ${gpxSimulation.trackpoints[0].time ? `⏱️ Début: ${gpxSimulation.trackpoints[0].time.toLocaleString('fr-FR')}` : ''}
+      `;
+      document.getElementById('gpxFileInfo').style.display = 'block';
+      document.getElementById('simControlsSection').style.display = 'block';
+      document.getElementById('simTotalPoints').textContent = gpxSimulation.trackpoints.length;
+
+      addLog(`GPX chargé: ${gpxSimulation.trackpoints.length} points, ${distKm} km`, 'success');
+    }
+
+    function startGPXSimulation() {
+      if (gpxSimulation.trackpoints.length === 0) {
+        alert('Veuillez charger un fichier GPX d'abord');
+        return;
+      }
+
+      gpxSimulation.active = true;
+      gpxSimulation.paused = false;
+      gpxSimulation.currentIndex = 0;
+      gpxSimulation.startTime = Date.now();
+      gpxSimulation.pausedTime = 0;
+
+      // Le GPS réel continuera de tourner mais sera ignoré pendant la simulation
+      addLog('GPS réel ignoré pendant la simulation', 'info');
+
+      // UI
+      document.getElementById('simStartBtn').style.display = 'none';
+      document.getElementById('simPauseBtn').style.display = 'block';
+      document.getElementById('simStopBtn').style.display = 'block';
+      document.getElementById('simProgressSection').style.display = 'block';
+      document.getElementById('simStatusActive').style.display = 'block';
+
+      addLog('Simulation GPX démarrée', 'success');
+      runGPXSimulation();
+    }
+
+    function pauseGPXSimulation() {
+      if (gpxSimulation.paused) {
+        // Reprendre
+        gpxSimulation.paused = false;
+        gpxSimulation.startTime = Date.now() - gpxSimulation.pausedTime;
+        document.getElementById('simPauseBtn').textContent = '⏸️ Pause';
+        addLog('Simulation reprise', 'info');
+        runGPXSimulation();
+      } else {
+        // Pause
+        gpxSimulation.paused = true;
+        gpxSimulation.pausedTime = Date.now() - gpxSimulation.startTime;
+        if (gpxSimulation.intervalId) {
+          clearTimeout(gpxSimulation.intervalId);
+        }
+        document.getElementById('simPauseBtn').textContent = '▶️ Reprendre';
+        addLog('Simulation en pause', 'warning');
+      }
+    }
+
+    function stopGPXSimulation() {
+      gpxSimulation.active = false;
+      gpxSimulation.paused = false;
+      gpxSimulation.currentIndex = 0;
+
+      if (gpxSimulation.intervalId) {
+        clearTimeout(gpxSimulation.intervalId);
+        gpxSimulation.intervalId = null;
+      }
+
+      // UI
+      document.getElementById('simStartBtn').style.display = 'block';
+      document.getElementById('simPauseBtn').style.display = 'none';
+      document.getElementById('simStopBtn').style.display = 'none';
+      document.getElementById('simProgressSection').style.display = 'none';
+      document.getElementById('simStatusActive').style.display = 'none';
+      document.getElementById('simProgressBar').style.width = '0%';
+      document.getElementById('simPauseBtn').textContent = '⏸️ Pause';
+
+      addLog('Simulation arrêtée', 'warning');
+
+      // Redémarrer le GPS réel
+      // GPS sera redémarré automatiquement
+    }
+
+    function runGPXSimulation() {
+      if (!gpxSimulation.active || gpxSimulation.paused) return;
+
+      if (gpxSimulation.currentIndex >= gpxSimulation.trackpoints.length) {
+        addLog('Fin de la simulation GPX', 'info');
+        stopGPXSimulation();
+        return;
+      }
+
+      const currentPt = gpxSimulation.trackpoints[gpxSimulation.currentIndex];
+      const nextPt = gpxSimulation.trackpoints[gpxSimulation.currentIndex + 1];
+
+      if (!nextPt) {
+        stopGPXSimulation();
+        return;
+      }
+
+      // Déterminer la vitesse à utiliser
+      let speed = gpxSimulation.useGPXSpeed && currentPt.speed ? currentPt.speed : gpxSimulation.customSpeed;
+
+      // Calculer la distance entre les deux points
+      const distance = haversine(currentPt.lat, currentPt.lon, nextPt.lat, nextPt.lon);
+
+      // Temps pour parcourir cette distance (en secondes)
+      const timeToNext = (distance / 1000) / (speed / 3600) / gpxSimulation.timeAccel;
+
+      // Simuler la position GPS
+      currentPos = {
+        latitude: currentPt.lat,
+        longitude: currentPt.lon,
+        altitude: currentPt.ele,
+        speed: speed / 3.6, // m/s
+        heading: calculateBearing(currentPt.lat, currentPt.lon, nextPt.lat, nextPt.lon),
+        accuracy: 5
+      };
+
+      // Forcer la mise à jour manuelle (simuler ce que fait le GPS callback)
+      currentSpeed = speed;
+      currentBearing = currentPos.heading;
+
+      // Mettre à jour l'affichage de vitesse
+      document.getElementById('speed-value').textContent = Math.round(currentSpeed);
+
+      // Vérifier les alertes radar
+      const detectionAngle = getDetectionAngle(currentSpeed);
+      if (debugMode) {
+        document.getElementById('dbg-heading').textContent = currentBearing.toFixed(0);
+        document.getElementById('dbg-lat').textContent = (currentPos.latitude ?? 0).toFixed(6);
+        document.getElementById('dbg-lon').textContent = (currentPos.longitude ?? 0).toFixed(6);
+        document.getElementById('dbg-alt').textContent = (currentPos.altitude ?? 0).toFixed(0);
+        document.getElementById('dbg-speed').textContent = currentSpeed.toFixed(1);
+        document.getElementById('dbg-accuracy').textContent = (currentPos.accuracy ?? 0).toFixed(0);
+        document.getElementById('dbg-radars').textContent = radars.length;
+        document.getElementById('dbg-angle').textContent = detectionAngle.toFixed(0);
+      }
+
+      const relevant = radars
+        .filter(isRelevantRadar)
+        .map(r => ({ ...r, distance: haversine(currentPos.latitude, currentPos.longitude, r.lat, r.lon) }))
+        .sort((a, b) => a.distance - b.distance);
+
+      if (debugMode) {
+        document.getElementById('dbg-relevant').textContent = relevant.length;
+      }
+
+      if (relevant.length === 0) {
+        resetDisplay();
+      } else {
+        const radar = relevant[0];
+        const zone = getAlertZone(radar.speed);
+        const currentDistance = radar.distance;
+
+        if (currentDistance <= zone.before) {
+          if (currentDistance < lastDistance || !activeRadar) {
+            activeRadar = radar;
+            lastDistance = currentDistance;
+            document.getElementById('radar-panel').style.display = 'flex';
+            document.getElementById('radar-limit').textContent = radar.speed;
+            document.getElementById('radar-distance').textContent = Math.round(currentDistance) + ' m';
+
+            if (currentSpeed <= radar.speed - 1) {
+              document.body.className = 'bg-green';
+            } else if (currentSpeed <= radar.speed + 5) {
+              document.body.className = 'bg-orange';
+            } else {
+              document.body.className = 'bg-red';
+            }
+
+            const progress = ((zone.before - currentDistance) / zone.before) * 100;
+            document.getElementById('gauge-fill').style.width = Math.max(0, Math.min(100, progress)) + '%';
+
+            const nowBeep = Date.now();
+            if (currentDistance <= zone.before && currentDistance >= zone.before * 0.8 && lastBeepTime === 0) {
+              beep(1500, 300);
+              lastBeepTime = nowBeep;
+            }
+            if (currentSpeed > radar.speed + 5 && nowBeep - lastBeepTime > 2000) {
+              beep(2000, 200);
+              lastBeepTime = nowBeep;
+            }
+          }
+        } else {
+          resetDisplay();
+        }
+      }
+
+      // Mettre à jour la progression
+      const progress = (gpxSimulation.currentIndex / gpxSimulation.trackpoints.length) * 100;
+      document.getElementById('simProgressBar').style.width = progress + '%';
+      document.getElementById('simCurrentPoint').textContent = gpxSimulation.currentIndex + 1;
+      document.getElementById('simDistance').textContent = ((currentPt.cumDistance || 0) / 1000).toFixed(2);
+      document.getElementById('simCurrentSpeed').textContent = Math.round(speed);
+
+      // Temps écoulé
+      const elapsed = Date.now() - gpxSimulation.startTime;
+      const minutes = Math.floor(elapsed / 60000);
+      const seconds = Math.floor((elapsed % 60000) / 1000);
+      document.getElementById('simTime').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+      // Passer au point suivant
+      gpxSimulation.currentIndex++;
+
+      // Planifier la prochaine mise à jour
+      gpxSimulation.intervalId = setTimeout(() => runGPXSimulation(), timeToNext * 1000);
+    }
+
+    function calculateBearing(lat1, lon1, lat2, lon2) {
+      const toRad = Math.PI / 180;
+      const toDeg = 180 / Math.PI;
+
+      const dLon = (lon2 - lon1) * toRad;
+      const y = Math.sin(dLon) * Math.cos(lat2 * toRad);
+      const x = Math.cos(lat1 * toRad) * Math.sin(lat2 * toRad) -
+                Math.sin(lat1 * toRad) * Math.cos(lat2 * toRad) * Math.cos(dLon);
+
+      let bearing = Math.atan2(y, x) * toDeg;
+      bearing = (bearing + 360) % 360;
+
+      return bearing;
+    }
+
+
+  </script>
+</body>
+</html>
