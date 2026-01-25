@@ -540,20 +540,6 @@
     // -----------------------------
     // State
     // -----------------------------
-    
-    let gpxSimulation = {
-      active: false,
-      paused: false,
-      trackpoints: [],
-      currentIndex: 0,
-      intervalId: null,
-      startTime: null,
-      pausedTime: 0,
-      totalDistance: 0,
-      customSpeed: 50,
-      timeAccel: 1.0,
-      useGPXSpeed: false
-    };
     let radars = [];
     let currentPos = null;
     let currentSpeed = 0;
@@ -1216,9 +1202,7 @@
     // Startup
     // -----------------------------
     window.onload = () => {
-      alert('📢 Démarrage Mobile V3\nSi tu vois ça, le fichier est bon !');
-
-      // Initialisation logs
+      // Init Logs
       addLog(`🚀 Radar Alert Pro V${APP_VERSION}`, 'success');
       addLog('📡 Démarrage...', 'info');
 
@@ -1228,39 +1212,138 @@
       updateStatusButton();
       scheduleAutoRefreshIfNeeded();
 
-      // INITIALISATION GPX
-      addLog('🔌 Init modules GPX...', 'info');
+      // ==========================================
+      // LOGIQUE GPX 100% INLINE (SANS FONCTIONS EXTERNES)
+      // ==========================================
+      addLog('🔌 Init GPX Inline...', 'info');
 
       const gpxInput = document.getElementById('gpxFileInput');
       if (gpxInput) {
-          gpxInput.onchange = function(e) {
-              alert('📂 Fichier détecté !\nLancement analyse...');
-              loadGPXFile(e);
+
+          gpxInput.onchange = function(event) {
+              addLog('📂 FICHIER DÉTECTÉ', 'info');
+
+              // 1. Récupération fichier
+              const file = event.target.files[0];
+              if (!file) {
+                  addLog('❌ Aucun fichier sélectionné', 'error');
+                  return;
+              }
+
+              addLog(`📄 Lecture: ${file.name}`, 'info');
+              document.getElementById('gpxFileInfo').style.display = 'block';
+              document.getElementById('gpxStats').innerHTML = '⏳ Lecture en cours...';
+
+              const reader = new FileReader();
+
+              reader.onload = function(e) {
+                  addLog('✅ Fichier lu', 'success');
+                  try {
+                      // 2. Parsing XML
+                      const gpxText = e.target.result;
+                      const parser = new DOMParser();
+                      const xmlDoc = parser.parseFromString(gpxText, "text/xml");
+
+                      const trkpts = xmlDoc.getElementsByTagName("trkpt");
+                      const rtepts = xmlDoc.getElementsByTagName("rtept");
+                      const wpts = xmlDoc.getElementsByTagName("wpt");
+
+                      let points = [];
+                      let type = "";
+
+                      if (trkpts.length > 0) { points = Array.from(trkpts); type = "Trace (trkpt)"; }
+                      else if (rtepts.length > 0) { points = Array.from(rtepts); type = "Route (rtept)"; }
+                      else if (wpts.length > 0) { points = Array.from(wpts); type = "Waypoints (wpt)"; }
+                      else {
+                          addLog('❌ Aucun point GPS trouvé', 'error');
+                          document.getElementById('gpxStats').innerHTML = '❌ Erreur: Aucun point GPS';
+                          return;
+                      }
+
+                      addLog(`✅ ${points.length} points (${type})`, 'success');
+
+                      // 3. Conversion points
+                      gpxSimulation.trackpoints = [];
+                      gpxSimulation.totalDistance = 0;
+
+                      for (let i = 0; i < points.length; i++) {
+                          const p = points[i];
+                          const lat = parseFloat(p.getAttribute("lat"));
+                          const lon = parseFloat(p.getAttribute("lon"));
+
+                          if (!isNaN(lat) && !isNaN(lon)) {
+                              let dist = 0;
+                              if (gpxSimulation.trackpoints.length > 0) {
+                                  const prev = gpxSimulation.trackpoints[gpxSimulation.trackpoints.length-1];
+                                  dist = haversine(prev.lat, prev.lon, lat, lon);
+                                  gpxSimulation.totalDistance += dist;
+                              }
+                              gpxSimulation.trackpoints.push({
+                                  lat: lat, lon: lon, cumDistance: gpxSimulation.totalDistance
+                              });
+                          }
+                      }
+
+                      const distKm = (gpxSimulation.totalDistance/1000).toFixed(2);
+
+                      // 4. Mise à jour UI
+                      const stats = document.getElementById('gpxStats');
+                      stats.innerHTML = `
+                          <div style="margin-top:5px; padding:5px; background:rgba(0,255,0,0.1); border-radius:4px;">
+                              ✅ <b>SUCCÈS</b><br>
+                              📍 <b>${gpxSimulation.trackpoints.length}</b> points<br>
+                              📏 <b>${distKm}</b> km<br>
+                              📝 <b>${type}</b>
+                          </div>
+                      `;
+
+                      const controls = document.getElementById('simControlsSection');
+                      controls.style.display = 'block';
+
+                      const startBtn = document.getElementById('simStartBtn');
+                      startBtn.style.display = 'block';
+                      startBtn.innerHTML = '▶️ DÉMARRER LA SIMULATION';
+                      startBtn.style.background = '#00ff00';
+                      startBtn.style.color = '#000';
+                      startBtn.style.fontSize = '18px';
+                      startBtn.style.padding = '15px';
+
+                      document.getElementById('simTotalPoints').textContent = gpxSimulation.trackpoints.length;
+
+                      addLog('▶️ PRÊT À DÉMARRER', 'success');
+
+                  } catch (err) {
+                      addLog(`❌ Erreur: ${err.message}`, 'error');
+                      document.getElementById('gpxStats').innerHTML = `❌ Erreur: ${err.message}`;
+                  }
+              };
+
+              reader.onerror = function() {
+                  addLog('❌ Erreur lecture fichier', 'error');
+              };
+
+              reader.readAsText(file);
           };
           addLog('✅ Input GPX connecté', 'success');
       } else {
-          alert('❌ ERREUR: Champ fichier introuvable');
+          addLog('❌ Input introuvable', 'error');
       }
 
-      // Sliders
+      // Sliders listeners
       const speedSlider = document.getElementById('customSpeedSlider');
-      if(speedSlider) {
-          speedSlider.oninput = (e) => {
-              gpxSimulation.customSpeed = parseInt(e.target.value);
-              document.getElementById('customSpeedDisplay').textContent = e.target.value;
-          };
-      }
+      if(speedSlider) speedSlider.oninput = (e) => {
+          gpxSimulation.customSpeed = parseInt(e.target.value);
+          document.getElementById('customSpeedDisplay').textContent = e.target.value;
+      };
 
       const accelSlider = document.getElementById('timeAccelSlider');
-      if(accelSlider) {
-          accelSlider.oninput = (e) => {
-              gpxSimulation.timeAccel = parseFloat(e.target.value);
-              document.getElementById('timeAccelDisplay').textContent = e.target.value;
-          };
-      }
+      if(accelSlider) accelSlider.oninput = (e) => {
+          gpxSimulation.timeAccel = parseFloat(e.target.value);
+          document.getElementById('timeAccelDisplay').textContent = e.target.value;
+      };
 
-      addLog('🏁 Prêt', 'success');
-    };;
+      addLog('🏁 Prêt V5 (Inline)', 'success');
+    };;;
   </script>
 
   <script>
@@ -1271,7 +1354,19 @@
     }
   
     // ========== SIMULATION GPX ==========
-    
+    let gpxSimulation = {
+      active: false,
+      paused: false,
+      trackpoints: [],
+      currentIndex: 0,
+      intervalId: null,
+      startTime: null,
+      pausedTime: 0,
+      totalDistance: 0,
+      customSpeed: 50,
+      timeAccel: 1.0,
+      useGPXSpeed: false
+    };
 
     // Event listeners pour la simulation
     document.getElementById('gpxFileInput').addEventListener('change', loadGPXFile);
@@ -1288,78 +1383,6 @@
     });
 
     
-    function loadGPXFile(event) {
-        addLog('📂 FICHIER REÇU', 'info');
-        const file = event.target.files[0];
-        if (!file) return;
-
-        addLog(`📄 Nom: ${file.name}`, 'info');
-        const reader = new FileReader();
-
-        reader.onload = (e) => {
-            alert('✅ Fichier lu !\nAnalyse du contenu...');
-            try {
-                parseGPXFile(e.target.result);
-            } catch (err) {
-                alert('❌ Erreur: ' + err.message);
-            }
-        };
-        reader.readAsText(file);
-    }
-
-
-    
-    function parseGPXFile(gpxText) {
-        addLog('🔍 Analyse XML...', 'info');
-        const parser = new DOMParser();
-        const xmlDoc = parser.parseFromString(gpxText, "text/xml");
-
-        const trkpts = xmlDoc.getElementsByTagName("trkpt");
-        const rtepts = xmlDoc.getElementsByTagName("rtept");
-        const wpts = xmlDoc.getElementsByTagName("wpt");
-
-        let points = [];
-        let type = "";
-
-        if (trkpts.length > 0) { points = Array.from(trkpts); type = "Trace (trkpt)"; }
-        else if (rtepts.length > 0) { points = Array.from(rtepts); type = "Route (rtept)"; }
-        else if (wpts.length > 0) { points = Array.from(wpts); type = "Waypoints (wpt)"; }
-        else {
-            alert('❌ Aucun point GPS trouvé dans ce fichier !');
-            return;
-        }
-
-        alert(`✅ ${points.length} points trouvés !\nType: ${type}\n\nLe bouton DÉMARRER va apparaître.`);
-
-        gpxSimulation.trackpoints = [];
-        gpxSimulation.totalDistance = 0;
-
-        for (let i = 0; i < points.length; i++) {
-            const p = points[i];
-            const lat = parseFloat(p.getAttribute("lat"));
-            const lon = parseFloat(p.getAttribute("lon"));
-
-            if (!isNaN(lat) && !isNaN(lon)) {
-                let dist = 0;
-                if (gpxSimulation.trackpoints.length > 0) {
-                    const prev = gpxSimulation.trackpoints[gpxSimulation.trackpoints.length-1];
-                    dist = haversine(prev.lat, prev.lon, lat, lon);
-                    gpxSimulation.totalDistance += dist;
-                }
-                gpxSimulation.trackpoints.push({
-                    lat: lat, lon: lon, cumDistance: gpxSimulation.totalDistance
-                });
-            }
-        }
-
-        document.getElementById('gpxStats').innerHTML = `<b>${gpxSimulation.trackpoints.length} pts</b> (${type})`;
-        document.getElementById('gpxFileInfo').style.display = 'block';
-        document.getElementById('simControlsSection').style.display = 'block';
-
-        addLog('▶️ Contrôles affichés', 'success');
-    }
-
-
     function startGPXSimulation() {
       if (gpxSimulation.trackpoints.length === 0) {
         alert('Veuillez charger un fichier GPX d'abord');
