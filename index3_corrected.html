@@ -1201,44 +1201,8 @@
     // -----------------------------
     // Startup
     // -----------------------------
-    window.onload = () => {
-      addLog(`Radar Alert Pro V${APP_VERSION}`, 'success');
-      addLog('Direct d’abord + fallback proxy + WakeLock', 'info');
-
-      requestWakeLock();
-
-      const ok = loadLocalCacheIntoMemory();
-      if (ok) addLog(`Cache: ${radars.length} radars`, 'success');
-      else addLog('Pas de cache local', 'warning');
-
-      updateStatusButton();
-
-      scheduleAutoRefreshIfNeeded();
-
-      // Event listeners pour la simulation
-      document.getElementById('gpxFileInput').addEventListener('change', loadGPXFile);
-      document.getElementById('customSpeedSlider').addEventListener('input', (e) => {
-        gpxSimulation.customSpeed = parseInt(e.target.value);
-        document.getElementById('customSpeedDisplay').textContent = e.target.value;
-      });
-      document.getElementById('timeAccelSlider').addEventListener('input', (e) => {
-        gpxSimulation.timeAccel = parseFloat(e.target.value);
-        document.getElementById('timeAccelDisplay').textContent = e.target.value;
-      });
-      document.getElementById('simSpeedMode').addEventListener('change', (e) => {
-        gpxSimulation.useGPXSpeed = (e.target.value === 'gpx');
-      });
-    };
-  </script>
-
-  <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('radars-sw.js')
-        .then(() => console.log('SW OK'))
-        .catch(err => console.error('SW KO', err));
-    }
-  
-    // ========== SIMULATION GPX ==========
+    
+    // ===== SIMULATION GPX - VARIABLES =====
     let gpxSimulation = {
       active: false,
       paused: false,
@@ -1253,7 +1217,325 @@
       useGPXSpeed: false
     };
 
-    
+    // ===== SIMULATION GPX - FONCTIONS =====
+function loadGPXFile(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          parseGPXFile(e.target.result);
+        } catch (error) {
+          addLog(`Erreur lecture GPX: ${error.message}`, 'error');
+          alert('Erreur lors de la lecture du fichier GPX');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function parseGPXFile(gpxText) {
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(gpxText, 'text/xml');
+
+      const trkpts = xmlDoc.getElementsByTagName('trkpt');
+      if (trkpts.length === 0) {
+        addLog('Aucun point trouvé dans le GPX', 'error');
+        alert('Aucun trackpoint trouvé dans le fichier GPX');
+        return;
+      }
+
+      gpxSimulation.trackpoints = [];
+      gpxSimulation.totalDistance = 0;
+
+      for (let i = 0; i < trkpts.length; i++) {
+        const pt = trkpts[i];
+        const lat = parseFloat(pt.getAttribute('lat'));
+        const lon = parseFloat(pt.getAttribute('lon'));
+
+        const eleNode = pt.getElementsByTagName('ele')[0];
+        const timeNode = pt.getElementsByTagName('time')[0];
+        const speedNode = pt.getElementsByTagName('speed')[0];
+
+        const trackpoint = {
+          lat: lat,
+          lon: lon,
+          ele: eleNode ? parseFloat(eleNode.textContent) : 0,
+          time: timeNode ? new Date(timeNode.textContent) : null,
+          speed: speedNode ? parseFloat(speedNode.textContent) * 3.6 : null
+        };
+
+        // Calculer la distance cumulée
+        if (i > 0) {
+          const prevPt = gpxSimulation.trackpoints[i - 1];
+          const dist = haversine(prevPt.lat, prevPt.lon, lat, lon);
+          gpxSimulation.totalDistance += dist;
+          trackpoint.cumDistance = gpxSimulation.totalDistance;
+        } else {
+          trackpoint.cumDistance = 0;
+        }
+
+        gpxSimulation.trackpoints.push(trackpoint);
+      }
+
+      // Afficher les infos
+      const distKm = (gpxSimulation.totalDistance / 1000).toFixed(2);
+      const hasSpeed = gpxSimulation.trackpoints.some(pt => pt.speed !== null);
+
+      document.getElementById('gpxStats').innerHTML = `
+        📍 Points: ${gpxSimulation.trackpoints.length}<br>
+        📏 Distance: ${distKm} km<br>
+        ${hasSpeed ? '✓ Données de vitesse disponibles<br>' : '⚠️ Pas de données de vitesse (utilisez vitesse personnalisée)<br>'}
+        ${gpxSimulation.trackpoints[0].time ? `⏱️ Début: ${gpxSimulation.trackpoints[0].time.toLocaleString('fr-FR')}` : ''}
+      `;
+      document.getElementById('gpxFileInfo').style.display = 'block';
+      document.getElementById('simControlsSection').style.display = 'block';
+      document.getElementById('simTotalPoints').textContent = gpxSimulation.trackpoints.length;
+
+      addLog(`GPX chargé: ${gpxSimulation.trackpoints.length} points, ${distKm} km`, 'success');
+    }
+
+    function startGPXSimulation() {
+      if (gpxSimulation.trackpoints.length === 0) {
+        alert('Veuillez charger un fichier GPX d'abord');
+        return;
+      }
+
+      gpxSimulation.active = true;
+      gpxSimulation.paused = false;
+      gpxSimulation.currentIndex = 0;
+      gpxSimulation.startTime = Date.now();
+      gpxSimulation.pausedTime = 0;
+
+      // Le GPS réel continuera de tourner mais sera ignoré pendant la simulation
+      addLog('GPS réel ignoré pendant la simulation', 'info');
+
+      // UI
+      document.getElementById('simStartBtn').style.display = 'none';
+      document.getElementById('simPauseBtn').style.display = 'block';
+      document.getElementById('simStopBtn').style.display = 'block';
+      document.getElementById('simProgressSection').style.display = 'block';
+      document.getElementById('simStatusActive').style.display = 'block';
+
+      addLog('Simulation GPX démarrée', 'success');
+      runGPXSimulation();
+    }
+
+    function pauseGPXSimulation() {
+      if (gpxSimulation.paused) {
+        // Reprendre
+        gpxSimulation.paused = false;
+        gpxSimulation.startTime = Date.now() - gpxSimulation.pausedTime;
+        document.getElementById('simPauseBtn').textContent = '⏸️ Pause';
+        addLog('Simulation reprise', 'info');
+        runGPXSimulation();
+      } else {
+        // Pause
+        gpxSimulation.paused = true;
+        gpxSimulation.pausedTime = Date.now() - gpxSimulation.startTime;
+        if (gpxSimulation.intervalId) {
+          clearTimeout(gpxSimulation.intervalId);
+        }
+        document.getElementById('simPauseBtn').textContent = '▶️ Reprendre';
+        addLog('Simulation en pause', 'warning');
+      }
+    }
+
+    function stopGPXSimulation() {
+      gpxSimulation.active = false;
+      gpxSimulation.paused = false;
+      gpxSimulation.currentIndex = 0;
+
+      if (gpxSimulation.intervalId) {
+        clearTimeout(gpxSimulation.intervalId);
+        gpxSimulation.intervalId = null;
+      }
+
+      // UI
+      document.getElementById('simStartBtn').style.display = 'block';
+      document.getElementById('simPauseBtn').style.display = 'none';
+      document.getElementById('simStopBtn').style.display = 'none';
+      document.getElementById('simProgressSection').style.display = 'none';
+      document.getElementById('simStatusActive').style.display = 'none';
+      document.getElementById('simProgressBar').style.width = '0%';
+      document.getElementById('simPauseBtn').textContent = '⏸️ Pause';
+
+      addLog('Simulation arrêtée', 'warning');
+
+      // Redémarrer le GPS réel
+      // GPS sera redémarré automatiquement
+    }
+
+    function runGPXSimulation() {
+      if (!gpxSimulation.active || gpxSimulation.paused) return;
+
+      if (gpxSimulation.currentIndex >= gpxSimulation.trackpoints.length) {
+        addLog('Fin de la simulation GPX', 'info');
+        stopGPXSimulation();
+        return;
+      }
+
+      const currentPt = gpxSimulation.trackpoints[gpxSimulation.currentIndex];
+      const nextPt = gpxSimulation.trackpoints[gpxSimulation.currentIndex + 1];
+
+      if (!nextPt) {
+        stopGPXSimulation();
+        return;
+      }
+
+      // Déterminer la vitesse à utiliser
+      let speed = gpxSimulation.useGPXSpeed && currentPt.speed ? currentPt.speed : gpxSimulation.customSpeed;
+
+      // Calculer la distance entre les deux points
+      const distance = haversine(currentPt.lat, currentPt.lon, nextPt.lat, nextPt.lon);
+
+      // Temps pour parcourir cette distance (en secondes)
+      const timeToNext = (distance / 1000) / (speed / 3600) / gpxSimulation.timeAccel;
+
+      // Simuler la position GPS
+      currentPos = {
+        latitude: currentPt.lat,
+        longitude: currentPt.lon,
+        altitude: currentPt.ele,
+        speed: speed / 3.6, // m/s
+        heading: calculateBearing(currentPt.lat, currentPt.lon, nextPt.lat, nextPt.lon),
+        accuracy: 5
+      };
+
+      // Forcer la mise à jour manuelle (simuler ce que fait le GPS callback)
+      currentSpeed = speed;
+      currentBearing = currentPos.heading;
+
+      // Mettre à jour l'affichage de vitesse
+      document.getElementById('speed-value').textContent = Math.round(currentSpeed);
+
+      // Vérifier les alertes radar
+      const detectionAngle = getDetectionAngle(currentSpeed);
+      if (debugMode) {
+        document.getElementById('dbg-heading').textContent = currentBearing.toFixed(0);
+        document.getElementById('dbg-lat').textContent = (currentPos.latitude ?? 0).toFixed(6);
+        document.getElementById('dbg-lon').textContent = (currentPos.longitude ?? 0).toFixed(6);
+        document.getElementById('dbg-alt').textContent = (currentPos.altitude ?? 0).toFixed(0);
+        document.getElementById('dbg-speed').textContent = currentSpeed.toFixed(1);
+        document.getElementById('dbg-accuracy').textContent = (currentPos.accuracy ?? 0).toFixed(0);
+        document.getElementById('dbg-radars').textContent = radars.length;
+        document.getElementById('dbg-angle').textContent = detectionAngle.toFixed(0);
+      }
+
+      const relevant = radars
+        .filter(isRelevantRadar)
+        .map(r => ({ ...r, distance: haversine(currentPos.latitude, currentPos.longitude, r.lat, r.lon) }))
+        .sort((a, b) => a.distance - b.distance);
+
+      if (debugMode) {
+        document.getElementById('dbg-relevant').textContent = relevant.length;
+      }
+
+      if (relevant.length === 0) {
+        resetDisplay();
+      } else {
+        const radar = relevant[0];
+        const zone = getAlertZone(radar.speed);
+        const currentDistance = radar.distance;
+
+        if (currentDistance <= zone.before) {
+          if (currentDistance < lastDistance || !activeRadar) {
+            activeRadar = radar;
+            lastDistance = currentDistance;
+            document.getElementById('radar-panel').style.display = 'flex';
+            document.getElementById('radar-limit').textContent = radar.speed;
+            document.getElementById('radar-distance').textContent = Math.round(currentDistance) + ' m';
+
+            if (currentSpeed <= radar.speed - 1) {
+              document.body.className = 'bg-green';
+            } else if (currentSpeed <= radar.speed + 5) {
+              document.body.className = 'bg-orange';
+            } else {
+              document.body.className = 'bg-red';
+            }
+
+            const progress = ((zone.before - currentDistance) / zone.before) * 100;
+            document.getElementById('gauge-fill').style.width = Math.max(0, Math.min(100, progress)) + '%';
+
+            const nowBeep = Date.now();
+            if (currentDistance <= zone.before && currentDistance >= zone.before * 0.8 && lastBeepTime === 0) {
+              beep(1500, 300);
+              lastBeepTime = nowBeep;
+            }
+            if (currentSpeed > radar.speed + 5 && nowBeep - lastBeepTime > 2000) {
+              beep(2000, 200);
+              lastBeepTime = nowBeep;
+            }
+          }
+        } else {
+          resetDisplay();
+        }
+      }
+
+      // Mettre à jour la progression
+      const progress = (gpxSimulation.currentIndex / gpxSimulation.trackpoints.length) * 100;
+      document.getElementById('simProgressBar').style.width = progress + '%';
+      document.getElementById('simCurrentPoint').textContent = gpxSimulation.currentIndex + 1;
+      document.getElementById('simDistance').textContent = ((currentPt.cumDistance || 0) / 1000).toFixed(2);
+      document.getElementById('simCurrentSpeed').textContent = Math.round(speed);
+
+      // Temps écoulé
+      const elapsed = Date.now() - gpxSimulation.startTime;
+      const minutes = Math.floor(elapsed / 60000);
+      const seconds = Math.floor((elapsed % 60000) / 1000);
+      document.getElementById('simTime').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+      // Passer au point suivant
+      gpxSimulation.currentIndex++;
+
+      // Planifier la prochaine mise à jour
+      gpxSimulation.intervalId = setTimeout(() => runGPXSimulation(), timeToNext * 1000);
+    }
+
+    function calculateBearing(lat1, lon1, lat2, lon2) {
+      const toRad = Math.PI / 180;
+      const toDeg = 180 / Math.PI;
+
+      const dLon = (lon2 - lon1) * toRad;
+      const y = Math.sin(dLon) * Math.cos(lat2 * toRad);
+      const x = Math.cos(lat1 * toRad) * Math.sin(lat2 * toRad) -
+                Math.sin(lat1 * toRad) * Math.cos(lat2 * toRad) * Math.cos(dLon);
+
+      let bearing = Math.atan2(y, x) * toDeg;
+      bearing = (bearing + 360) % 360;
+
+      return bearing;
+    }
+
+    // ===== INITIALISATION =====
+    window.onload = () => {
+      addLog(`Radar Alert Pro V${APP_VERSION}`, 'success');
+      addLog('Direct d'abord + fallback proxy + WakeLock', 'info');
+
+      requestWakeLock();
+
+      const ok = loadLocalCacheIntoMemory();
+      if (ok) addLog(`Cache: ${radars.length} radars`, 'success');
+      else addLog('Pas de cache local', 'warning');
+
+      updateStatusButton();
+
+      scheduleAutoRefreshIfNeeded();
+
+      // ===== EVENT LISTENERS GPX =====
+      document.getElementById('gpxFileInput').addEventListener('change', loadGPXFile);
+    document.getElementById('customSpeedSlider').addEventListener('input', (e) => {
+      gpxSimulation.customSpeed = parseInt(e.target.value);
+      document.getElementById('customSpeedDisplay').textContent = e.target.value;
+    });
+    document.getElementById('timeAccelSlider').addEventListener('input', (e) => {
+      gpxSimulation.timeAccel = parseFloat(e.target.value);
+      document.getElementById('timeAccelDisplay').textContent = e.target.value;
+    });
+    document.getElementById('simSpeedMode').addEventListener('change', (e) => {
+      gpxSimulation.useGPXSpeed = (e.target.value === 'gpx');
+    });
+
     function loadGPXFile(event) {
       const file = event.target.files[0];
       if (!file) return;
@@ -1544,6 +1826,17 @@
     }
 
 
+  </script>
+</body>
+</html>
+    };
+
+    // ===== SERVICE WORKER =====
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('radars-sw.js')
+        .then(() => console.log('SW OK'))
+        .catch(err => console.error('SW KO', err));
+    }
   </script>
 </body>
 </html>
