@@ -537,6 +537,20 @@
   </div>
 
   <script>
+    let gpxSimulation = {
+      active: false,
+      paused: false,
+      trackpoints: [],
+      currentIndex: 0,
+      intervalId: null,
+      startTime: null,
+      pausedTime: 0,
+      totalDistance: 0,
+      customSpeed: 50,
+      timeAccel: 1.0,
+      useGPXSpeed: false
+    };
+    
     // -----------------------------
     // State
     // -----------------------------
@@ -1202,7 +1216,7 @@
     // Startup
     // -----------------------------
     window.onload = () => {
-      alert('📢 Démarrage Mobile V3\nSi tu vois ça, le fichier est bon !');
+      addLog('📢 Démarrage Mobile V3', 'info');
 
       // Initialisation logs
       addLog(`🚀 Radar Alert Pro V${APP_VERSION}`, 'success');
@@ -1220,7 +1234,7 @@
       const gpxInput = document.getElementById('gpxFileInput');
       if (gpxInput) {
           gpxInput.onchange = function(e) {
-              alert('📂 Fichier détecté !\nLancement analyse...');
+              addLog('📂 Fichier détecté', 'info');
               loadGPXFile(e);
           };
           addLog('✅ Input GPX connecté', 'success');
@@ -1246,6 +1260,10 @@
       }
 
       addLog('🏁 Prêt', 'success');
+    
+      window.startGPXSimulation = startGPXSimulation;
+      window.stopGPXSimulation = stopGPXSimulation;
+      window.pauseGPXSimulation = pauseGPXSimulation;
     };;
   </script>
 
@@ -1257,19 +1275,7 @@
     }
   
     // ========== SIMULATION GPX ==========
-    let gpxSimulation = {
-      active: false,
-      paused: false,
-      trackpoints: [],
-      currentIndex: 0,
-      intervalId: null,
-      startTime: null,
-      pausedTime: 0,
-      totalDistance: 0,
-      customSpeed: 50,
-      timeAccel: 1.0,
-      useGPXSpeed: false
-    };
+    
 
     // Event listeners pour la simulation
     document.getElementById('gpxFileInput').addEventListener('change', loadGPXFile);
@@ -1295,7 +1301,7 @@
         const reader = new FileReader();
 
         reader.onload = (e) => {
-            alert('✅ Fichier lu !\nAnalyse du contenu...');
+            addLog('✅ Fichier lu', 'info');
             try {
                 parseGPXFile(e.target.result);
             } catch (err) {
@@ -1358,7 +1364,7 @@
     }
 
 
-    function startGPXSimulation() {\n      addLog('🔥 CLIC DÉMARRER DÉTECTÉ', 'success');
+    function startGPXSimulation() {
       if (gpxSimulation.trackpoints.length === 0) {
         alert('Veuillez charger un fichier GPX d'abord');
         return;
@@ -1571,13 +1577,6 @@
     }
 
 
-  
-    // CORRECTIF iOS : Exposer les fonctions au scope global (window)
-    window.startGPXSimulation = startGPXSimulation;
-    window.pauseGPXSimulation = pauseGPXSimulation;
-    window.stopGPXSimulation = stopGPXSimulation;
-    window.runGPXSimulation = runGPXSimulation;
-    addLog('🌐 Fonctions globalisées (iOS OK)', 'success');
-</script>
+  </script>
 </body>
 </html>
