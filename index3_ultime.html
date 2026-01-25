@@ -1216,7 +1216,7 @@
     // Startup
     // -----------------------------
     window.onload = () => {
-      addLog('🚀 Radar Alert Pro prêt', 'success');
+      alert('📢 Démarrage Mobile V3\nSi tu vois ça, le fichier est bon !');
 
       // Initialisation logs
       addLog(`🚀 Radar Alert Pro V${APP_VERSION}`, 'success');
@@ -1234,7 +1234,7 @@
       const gpxInput = document.getElementById('gpxFileInput');
       if (gpxInput) {
           gpxInput.onchange = function(e) {
-              addLog('📂 Fichier détecté, analyse...', 'info');
+              alert('📂 Fichier détecté !\nLancement analyse...');
               loadGPXFile(e);
           };
           addLog('✅ Input GPX connecté', 'success');
@@ -1297,7 +1297,7 @@
         const reader = new FileReader();
 
         reader.onload = (e) => {
-            addLog('✅ Fichier lu, parsing...', 'info');
+            alert('✅ Fichier lu !\nAnalyse du contenu...');
             try {
                 parseGPXFile(e.target.result);
             } catch (err) {
@@ -1354,14 +1354,21 @@
 
         document.getElementById('gpxStats').innerHTML = `<b>${gpxSimulation.trackpoints.length} pts</b> (${type})`;
         document.getElementById('gpxFileInfo').style.display = 'block';
+        
         document.getElementById('simControlsSection').style.display = 'block';
+        const startBtn = document.getElementById('simStartBtn');
+        if (startBtn) {
+            startBtn.onclick = function() { window.startGPXSimulation(); };
+            addLog('✅ Bouton Démarrer activé', 'success');
+        }
+
 
         addLog('▶️ Contrôles affichés', 'success');
     }
 
 
     function startGPXSimulation() {
-      addLog('🖱️ CLIC SUR DÉMARRER REÇU', 'success');
+      addLog('🖱️ CLIC DÉTECTÉ !', 'success');
       if (gpxSimulation.trackpoints.length === 0) {
         alert('Veuillez charger un fichier GPX d'abord');
         return;
@@ -1575,11 +1582,12 @@
 
 
   
-    // Fix iOS : Export global
+    // Fix Safari iOS Global Scope
     window.startGPXSimulation = startGPXSimulation;
     window.pauseGPXSimulation = pauseGPXSimulation;
     window.stopGPXSimulation = stopGPXSimulation;
     window.runGPXSimulation = runGPXSimulation;
+    addLog('🌐 Fonctions prêtes pour iOS', 'success');
 </script>
 </body>
 </html>
