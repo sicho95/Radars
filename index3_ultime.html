@@ -541,20 +541,6 @@
     // State
     // -----------------------------
     let radars = [];
-    let gpxSimulation = {
-      active: false,
-      paused: false,
-      trackpoints: [],
-      currentIndex: 0,
-      intervalId: null,
-      startTime: null,
-      pausedTime: 0,
-      totalDistance: 0,
-      customSpeed: 50,
-      timeAccel: 1.0,
-      useGPXSpeed: false
-    };
-    
     let currentPos = null;
     let currentSpeed = 0;
     let currentBearing = 0;
@@ -1271,7 +1257,19 @@
     }
   
     // ========== SIMULATION GPX ==========
-    
+    let gpxSimulation = {
+      active: false,
+      paused: false,
+      trackpoints: [],
+      currentIndex: 0,
+      intervalId: null,
+      startTime: null,
+      pausedTime: 0,
+      totalDistance: 0,
+      customSpeed: 50,
+      timeAccel: 1.0,
+      useGPXSpeed: false
+    };
 
     // Event listeners pour la simulation
     document.getElementById('gpxFileInput').addEventListener('change', loadGPXFile);
@@ -1360,9 +1358,7 @@
     }
 
 
-    function startGPXSimulation() {
-      addLog('🔥 CLIC DÉMARRER détecté !', 'success');
-
+    function startGPXSimulation() {\n      addLog('🔥 CLIC DÉMARRER DÉTECTÉ', 'success');
       if (gpxSimulation.trackpoints.length === 0) {
         alert('Veuillez charger un fichier GPX d'abord');
         return;
@@ -1576,12 +1572,12 @@
 
 
   
-    // FORCE GLOBAL iOS/Safari
+    // CORRECTIF iOS : Exposer les fonctions au scope global (window)
     window.startGPXSimulation = startGPXSimulation;
     window.pauseGPXSimulation = pauseGPXSimulation;
     window.stopGPXSimulation = stopGPXSimulation;
     window.runGPXSimulation = runGPXSimulation;
-    addLog('🌐 Fonctions exposées globalement pour iOS', 'success');
+    addLog('🌐 Fonctions globalisées (iOS OK)', 'success');
 </script>
 </body>
 </html>
