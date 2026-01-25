@@ -550,7 +550,7 @@
       timeAccel: 1.0,
       useGPXSpeed: false
     };
-    
+
     // -----------------------------
     // State
     // -----------------------------
@@ -1216,7 +1216,7 @@
     // Startup
     // -----------------------------
     window.onload = () => {
-      addLog('📢 Démarrage Mobile V3', 'info');
+      addLog('🚀 Radar Alert Pro prêt', 'success');
 
       // Initialisation logs
       addLog(`🚀 Radar Alert Pro V${APP_VERSION}`, 'success');
@@ -1234,7 +1234,7 @@
       const gpxInput = document.getElementById('gpxFileInput');
       if (gpxInput) {
           gpxInput.onchange = function(e) {
-              addLog('📂 Fichier détecté', 'info');
+              addLog('📂 Fichier détecté, analyse...', 'info');
               loadGPXFile(e);
           };
           addLog('✅ Input GPX connecté', 'success');
@@ -1260,10 +1260,6 @@
       }
 
       addLog('🏁 Prêt', 'success');
-    
-      window.startGPXSimulation = startGPXSimulation;
-      window.stopGPXSimulation = stopGPXSimulation;
-      window.pauseGPXSimulation = pauseGPXSimulation;
     };;
   </script>
 
@@ -1301,7 +1297,7 @@
         const reader = new FileReader();
 
         reader.onload = (e) => {
-            addLog('✅ Fichier lu', 'info');
+            addLog('✅ Fichier lu, parsing...', 'info');
             try {
                 parseGPXFile(e.target.result);
             } catch (err) {
@@ -1365,6 +1361,7 @@
 
 
     function startGPXSimulation() {
+      addLog('🖱️ CLIC SUR DÉMARRER REÇU', 'success');
       if (gpxSimulation.trackpoints.length === 0) {
         alert('Veuillez charger un fichier GPX d'abord');
         return;
@@ -1577,6 +1574,12 @@
     }
 
 
-  </script>
+  
+    // Fix iOS : Export global
+    window.startGPXSimulation = startGPXSimulation;
+    window.pauseGPXSimulation = pauseGPXSimulation;
+    window.stopGPXSimulation = stopGPXSimulation;
+    window.runGPXSimulation = runGPXSimulation;
+</script>
 </body>
 </html>
