@@ -1061,7 +1061,7 @@
       const lonMax = Math.min(180, lon + deg);
 
       const box = `${latMin},${lonMin},${latMax},${lonMax}`;
-      const url = `https://cdn2.atudo.net/api/4.0/pois.php?z=${s.zoom}&type=0,1,2,3,4,5,6,101,102,103&box=${encodeURIComponent(box)}`;
+      const url = `https://cdn2.atudo.net/api/4.0/pois.php?z=${s.zoom}&type=1,2,3,4,5,6,7,8,10&box=${encodeURIComponent(box)}`;
 
       addLog('Chargement Blitzer...', 'info');
 
